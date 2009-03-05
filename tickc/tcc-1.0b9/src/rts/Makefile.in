@@ -1,0 +1,52 @@
+.PHONY: all clean dist-clean install
+
+VPATH	= 	@srcdir@
+
+CFLAGS1	=	-Wall $(xdefs) -I. -I@srcdir@ -I$(includedir)/tickc
+ifeq ($(MODE),optimize)
+CFLAGS	=	$(CFLAGS1) -O3 -DNDEBUG
+else
+CFLAGS	=	$(CFLAGS1) -O0 -ggdb -Wno-unused
+endif
+
+INSTALL =	@INSTALL@
+LN_S	=	@LN_S@
+
+ifeq ($(T_OS),sstrix)
+CC	= 	$(SSCC)
+RANLIB	=	$(SSRANLIB)
+AR	=	$(SSAR)
+else
+CC	= 	@CC@
+RANLIB	=	@RANLIB@
+AR	=	@AR@
+endif
+
+
+SRCS	=	tickc-rts.c
+OBJS	=	$(subst .c,.o,$(SRCS))
+HDRS	= 	@srcdir@/tickc-rts.h
+
+all: install
+
+install: libtickc-rts.a  $(HDRS)
+	$(INSTALL) -m 0644 libtickc-rts.a $(libdir)
+	for p in $(HDRS); do \
+		$(INSTALL) -m 0644 $$p $(includedir)/tickc; \
+	done
+	$(RANLIB) $(libdir)/libtickc-rts.a
+
+libtickc-rts.a: $(OBJS)
+	$(AR) ruv $@ $^; $(RANLIB) $@
+
+clean:
+	rm -f *.o *.d *~ core
+
+dist-clean:	clean
+	rm -f rts libtickc-rts.a
+
+%.d: %.c
+	$(SHELL) -ec '$(CC) -M -MG $(CFLAGS) $< \
+                           | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@'
+
+include $(subst .c,.d,$(SRCS))

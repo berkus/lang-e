@@ -1,0 +1,10 @@
+all: $(BINS)
+
+clean:
+	rm -f *.[ios] *.out *.s.* x*c.c core *~
+
+clean-all: clean
+	rm -f $(BINS)
+
+%: %.tc
+	$(CC) $(CFLAGS) -o $@ $^

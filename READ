@@ -1,0 +1,9 @@
+low-level instruction presentation in GNU CC: 
+ RTL (register-transfer-level) 
+ [Stall94]
+
+
+Guarded Command Language (E. W. Dijkstra [Dijk76])
+
+Sisal language [BGOCF93]
+

@@ -1,0 +1,46 @@
+CC=gcc
+BPOCFLAGS=-D__VCODE__
+BPOOBJS=../bpo/bpo-mips-ultrix.o
+ifeq ($(MODE),optimize)
+GCCFLAGS= -O3 -DNDEBUG -fpcc-struct-return -ansi -pedantic -Wall
+else
+GCCFLAGS= -O -ggdb -fpcc-struct-return -ansi -pedantic -Wall
+endif
+SPECFLAGS= fast
+CFLAGS= $(GCCFLAGS) $(BPOCFLAGS)
+LIBS=
+VARCH=mips
+TST=tst
+HDRS=vcode-macros.h vcode.h
+VOBJS= link.o mips-gen.o gen.o register.o xlate.o call.o poly-insns.o fp-imm.o portable-insts.o mult.o
+VSRC= $(VOBJS:.o=.c);
+
+all: binary.h vcode-macros.h vcode.lib.a 
+
+vcode.lib.a: $(BPOOBJS) $(VOBJS) $(HDRS)
+	ar ruv vcode.lib.a $(BPOOBJS) $(VOBJS)
+	ranlib vcode.lib.a
+
+binary.h: $(VARCH)-bin
+	./m4/m4 < $(VARCH)-bin > binary.h
+
+vcode-macros.h: binary.h $(VARCH).md spec.pl
+	perl spec.pl fast < $(VARCH).md > vcode-macros.h
+
+$(VARCH)-gen.c: $(HDRS)
+gen.c: $(HDRS)
+
+# code for cmul
+CMUL = 4096
+mult.h: booth-gen
+	./booth-gen $(CMUL) > mult.h
+booth-gen: booth-gen.c
+	$(CC) $(CFLAGS) -o booth-gen booth-gen.c
+
+depend:
+	makedepend $(VSRC)
+
+clean:
+	rm -f *.o core vcode.lib.a *.Counts *.pixie *.Addrs vcode-macros.h binary.h
+
+mult.o: mult.c mult.h vcode.h

@@ -1,0 +1,170 @@
+#include "benchmark.h"
+
+typedef enum { AA, BB, CC, DD, EE, FF, GG } fieldtype;
+typedef enum { LT, LE, GT, GE, NE, EQ } bool_op;
+
+struct query {
+     fieldtype record_field;
+     unsigned val;
+     bool_op bool_op;
+};
+
+struct record {
+     int a;
+     int b;
+     int c;
+     int d;
+     int e;
+     int f;
+     int g;
+};
+
+typedef int (*iptr)(struct record *r); 
+
+iptr mkquery(struct query *q, int n) {
+     int cspec field, i;
+     struct record * vspec r;
+     void cspec stmt;
+
+     r = param(struct record *,0);
+
+     stmt = `{};
+     for (i = 0; i < n; i++) {
+	  switch (q[i].record_field) {
+	  case AA:   field = `((@r)->a); break;
+	  case BB:   field = `((@r)->b); break;
+	  case CC:   field = `((@r)->c); break;
+	  case DD:   field = `((@r)->d); break;
+	  case EE:   field = `((@r)->e); break;
+	  case FF:   field = `((@r)->f); break;
+	  case GG:   field = `((@r)->g); break;
+	  }
+	  switch (q[i].bool_op) {
+	  case LT:
+	       stmt = `{ @stmt; if(@field >= $q[i].val) return 0; };       
+	       break;
+	  case EQ:
+	       stmt = `{ @stmt; if(@field != $q[i].val) return 0; };      
+	       break;
+	  case LE:
+	       stmt = `{ @stmt; if(@field > $q[i].val) return 0; };      
+	       break;
+	  case GT:
+	       stmt = `{ @stmt; if(@field <= $q[i].val) return 0; };       
+	       break;
+	  case NE:
+	       stmt = `{ @stmt; if(@field == $q[i].val) return 0; };      
+	       break;
+	  case GE:
+	       stmt = `{ @stmt; if(@field < $q[i].val) return 0; };      
+	       break;
+	  }
+     }
+     return compile(`{ @stmt; return 1; }, int);
+}
+
+#define printrecord(i,r) {\
+  printf("%d is: %d %d %d %d %d\n",i,(r).a,\
+	 (r).b, (r).c, (r).d, (r).e, (r).f, (r).g);\
+}
+
+int sq(struct record *d, struct query *q, int n) {
+     int i,j;
+     int field;
+     for (i=0;i<n; i++) {
+	  switch (q[i].record_field) {
+	  case AA:   field = d->a; break;
+	  case BB:   field = d->b; break;
+	  case CC:   field = d->c; break;
+	  case DD:   field = d->d; break;
+	  case EE:   field = d->e; break;
+	  case FF:   field = d->f; break;
+	  case GG:   field = d->g; break;
+	  }
+	  switch (q[i].bool_op) {
+	  case LT: if (field >= q[i].val) return 0;     continue;
+	  case EQ: if (field != q[i].val) return 0;     continue;
+	  case LE: if (field >  q[i].val) return 0;     continue;
+	  case GT: if (field <= q[i].val) return 0;     continue;
+	  case NE: if (field == q[i].val) return 0;     continue;
+	  case GE: if (field <  q[i].val) return 0;     continue;
+	  }
+     }
+     return 1;
+}
+
+void main(int argc, char **argv) {
+     int i,j;
+     struct query q[] = { {AA,1,LE}, {BB,2,LE}, {CC,3,LE}, {DD,4,LE},
+			  {EE,5,LE}, {FF,6,LE}, {GG,7,LE},
+#ifdef largetickc
+			  {AA,1,LE}, {BB,2,LE}, {CC,3,LE}, {DD,4,LE}, 
+			  {EE,5,LE}, {FF,6,LE}, {GG,7,LE},
+			  {AA,1,LE}, {BB,2,LE}, {CC,3,LE}, {DD,4,LE}, 
+			  {EE,5,LE}, {FF,6,LE}, {GG,7,LE},
+			  {AA,1,LE}, {BB,2,LE}, {CC,3,LE}, {DD,4,LE}, 
+			  {EE,5,LE}, {FF,6,LE}, {GG,7,LE},
+			  {AA,1,LE}, {BB,2,LE}, {CC,3,LE}, {DD,4,LE}, 
+			  {EE,5,LE}, {FF,6,LE}, {GG,7,LE},
+#endif
+     };
+     struct record *d;
+
+     doargs(argc, argv);
+     printf("## query ##\n");
+
+     d = (struct record *)malloc(ndata*sizeof(struct record));
+     srandom(1);
+     for (i=0; i < ndata; i++) {
+	  d[i].a = random()%7;	d[i].b = random()%7;	
+	  d[i].c = random()%7;
+	  d[i].d = random()%7;	d[i].e = random()%7;	
+	  d[i].f = random()%7;
+	  d[i].g = random()%7;
+     }
+     if (optDCG) {
+	  iptr p, p2;
+				/* Warm up cache */
+	  p2 = mkquery((struct query*)q, sizeof(q)/sizeof(q[0]));
+
+	  SWON("compilation");
+	  for (i=0; i<ncomp; i++) {
+	       p = mkquery((struct query*)q, sizeof(q)/sizeof(q[0]));
+	       decompile(p);
+	  }
+	  SWOFF;
+
+	  p = p2;
+	  if (!p) return;
+	  dump(p);
+
+	  for(j=0; j<ndata; j++) /* Warm up cache */
+	       (*p)(&d[j]);
+	  SWON("run");
+	  for (i=0; i<nruns; i++)
+	       for(j=0; j<ndata; j++)
+		    (*p)(&d[j]);
+	  SWOFF;
+
+	  if (optVerbose) {
+	       for(j=0; j<ndata; j++)
+		    printf("%d ",p(&d[j]));
+	       printf("\n");
+	  }
+     } else {
+	  for(j=0; j<ndata; j++) /* Warm up cache */
+	       sq(&d[j], (struct query*)q, sizeof(q)/sizeof(q[0]));
+	  SWON("run");
+	  for (i=0; i<nruns; i++)
+	       for(j=0; j<ndata; j++)
+		    sq(&d[j], (struct query*)q, sizeof(q)/sizeof(q[0]));
+	  SWOFF;
+
+	  if (optVerbose) {
+	       for(j=0; j<ndata; j++)
+		    printf("%d ",sq(&d[j], (struct query*)q, 
+				    sizeof(q)/sizeof(q[0])));
+	       printf("\n");
+	  }
+     }
+}

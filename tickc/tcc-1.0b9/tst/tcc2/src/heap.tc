@@ -1,0 +1,179 @@
+#include <stdio.h>
+#include "benchmark.h"
+
+/* cmp(l,r) return 1 if l < r, otherwise return 0 */
+int compare(void *x, void *y) { 
+     return *(int *)x < *(int *)y;
+}
+
+typedef void (*swap_ptr)(void *, void *);
+
+swap_ptr swap, swap2;
+
+/* assume size is a multiple of 4 */
+swap_ptr mkswap(int size) {
+     long * vspec src = param(long *, 0);
+     long * vspec dst = param(long *, 1);
+     long vspec tmp = local(long);
+     void cspec s;
+     int i;
+
+     s = `{};
+
+     /* generate a swap loop. */
+     for(i = 0; i <  size/4; i++)
+	  s = `{  
+	       @s;
+	       @tmp = (@src)[$i]; 
+	       (@src)[$i] = (@dst)[$i]; 
+	       (@dst)[$i] = @tmp; 
+	  };
+     return (swap_ptr)compile(s, int);
+}
+
+
+static void adjust(void *v, int m, int n, int size, 
+		   int (*compare)(void *, void*)) {
+     char *b, *bk, *bj;
+     int j, k;
+
+     b = ((char *)v - size);
+
+     j = m;
+     k = m * 2;
+     while(k <= n) { 
+	  if (k < n && compare(b + size * k, b + size * ( k + 1)))
+	       ++k;
+	  bk = b + k *size;
+	  bj = b + j * size;
+
+	  if (compare(bj, bk))
+	       (*swap)(bj, bk);
+	  j = k;
+	  k *= 2;
+     }
+}
+
+/* H & S 68 */
+void heapsort(void *v, int n, int size, int (*compare)(void *, void *)) {
+     char *b, *b1, *bj1;
+     int j;
+
+     b = ((char *)v - size);
+
+     for(j = n/2; j > 0; j--) 
+	  adjust(v,j,n, size, compare);
+     for(j = n - 1; j > 0; j--) {
+	  b1 = b + size;
+	  bj1 = b + (j+1) * size;
+	  /* swap(b[1], b[j+1]); */
+	  (*swap)(b1, bj1);
+	  adjust(v, 1, j, size, compare);
+     }	
+}
+
+static void sadjust(void *v, int m, int n, int size, 
+		    int (*compare)(void *, void*)) {
+     char *b, *temp, *bk, *bj;
+     int j, k;
+     static long buf[128];
+
+     b = ((char *)v - size);
+     temp = (char *)buf;
+
+     j = m;
+     k = m * 2;
+     while(k <= n) { 
+	  if(k < n && compare(b + size * k, b + size * ( k + 1)))
+	       ++k;
+	  bk = b + k *size;
+	  bj = b + j * size;
+
+	  if(compare(bj, bk)) {
+	       /* swap */
+	       memcpy(temp, bj, size);
+	       memcpy(bj, bk, size);
+	       memcpy(bk,temp,size);
+	  }
+	  j = k;
+	  k *= 2;
+     }
+}
+
+/* H & S 68 */
+void sheapsort(void *v, int n, int size, int (*compare)(void *, void *)) {
+     char *b, *temp, *b1, *bj1;
+     int j;
+     static long buf[128];
+
+     temp = (char *)buf;
+     b = ((char *)v - size);
+
+     for(j = n/2; j > 0; j--) 
+	  sadjust(v,j,n, size, compare);
+     for(j = n - 1; j > 0; j--) {
+	  b1 = b + size;
+	  bj1 = b + (j+1) * size;
+	  memcpy(temp, b1, size);
+	  memcpy(b1, bj1, size);
+	  memcpy(bj1,temp,size);
+	  sadjust(v, 1, j, size, compare);
+     }	
+}
+
+struct elem { int x; int y; int z; };
+
+dumpelem(struct elem *array, int n) {
+	int i;
+
+	for(i = 0; i < n; i++)
+	     printf("array[%d] = {%d,%d,%d}\n", i, 
+		    array[i].x, array[i].y, array[i].z);
+}
+
+int main(int argc, char **argv) { 
+     struct elem *array;
+     struct elem *array2;
+     int i;
+
+     doargs(argc, argv);
+     printf("## heap ##\n");
+
+     array = (struct elem *)malloc(ndata*sizeof (struct elem));
+     array2 = (struct elem *)malloc(ndata*sizeof (struct elem));
+
+     srandom(1);
+     for (i = 0; i < ndata; i++)
+	  array[i].x = array2[i].x = random();
+
+     if (optDCG) {
+	  swap2 = mkswap(sizeof array[0]); /* Warm the cache */
+
+	  SWON("compilation");
+	  for(i = 0; i < ncomp; i++) {
+	       swap = mkswap(sizeof array[0]);
+	       decompile(swap);
+	  }
+	  SWOFF;
+
+	  swap = swap2;
+	  if (!swap) return;
+	  dump(swap);
+
+	  heapsort(array, ndata, sizeof array[0], compare); /* Warm cache */
+	  SWON("run");
+	  for(i =0; i < nruns; i++)
+	       heapsort(array, ndata, sizeof array[0], compare);
+	  SWOFF;
+	  if (optVerbose)
+	       dumpelem(array, ndata);
+     } else {
+	  sheapsort(array2, ndata, sizeof array[0], compare); /* Warm cache */
+	  SWON("run");
+	  for(i =0; i < nruns; i++)
+	       sheapsort(array2, ndata, sizeof array[0], compare);
+	  SWOFF;
+	  if (optVerbose)
+	       dumpelem(array2, ndata);
+     }
+}

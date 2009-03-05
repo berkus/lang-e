@@ -1,0 +1,233 @@
+#include <stdarg.h>
+#include "benchmark.h"
+
+typedef union { 
+	int i;
+	double d;
+	void *p;
+} type;
+typedef void (*cptr)(type *buf);
+typedef void (*mptr)();
+typedef void (*vptr)(mptr f, type *buf);
+typedef type* (*xptr)();
+
+/* The types of arguments mk_marshal can marshal. */
+typedef enum { DONE = 0, INTEGER, DOUBLE, POINTER } type_t;
+
+typedef char foo[80];
+xptr mk_marshal(type_t *types) {
+     static type md[80];
+     type * vspec m;
+     void cspec s;
+     int i;
+
+     m = local(type *);
+     s = `{ @m = md; };
+     for (i = 0; types[i] != DONE; i++) {
+	  switch(types[i]) {
+	  case INTEGER: {
+	       int vspec v = param(int,i);
+	       s = `{ @s; (@m)[$i].i = @v; };
+	       break;
+	  }
+	  case DOUBLE: {
+	       double vspec v = param(double,i);
+	       s = `{ @s; (@m)[$i].d = @v; };
+	       break;
+	  }
+	  case POINTER: {
+	       void * vspec v = param(void *,i);
+	       s = `{ @s; (@m)[$i].p = @v; };
+	       break;
+	  }
+	  }
+     }
+     return compile(`{ @s; return @m; }, type *);
+}
+
+/* Given a function and a type list, slurp out the arguments. */
+void *marshal(type_t *types, ...) {
+     static type m[80];
+     va_list ap;
+     int i;
+
+     va_start(ap, types);
+
+     for(i = 0; types[i] != DONE; i++) {
+	  switch(types[i]) {
+
+	  case INTEGER: 
+	       m[i].i = va_arg(ap, int);
+	       break;
+	  case DOUBLE: 
+	       m[i].d = va_arg(ap, double);
+	       break;
+	  case POINTER: 
+	       m[i].p = va_arg(ap, void *);
+	       break;
+	  default:
+	       break;
+	  }
+     }
+     va_end(ap);
+     return m;
+}
+
+void unmarshal (type *buf, void (*f)(int,int,int,int,int)) {
+     int a = buf[0].i;
+     int b = buf[1].i;
+     int c = buf[2].i;
+     int d = buf[3].i;
+     int e = buf[4].i;
+     f(a,b,c,d,e);
+}
+
+mptr mm2(mptr vp, type_t *types) {
+     int i;
+
+     for (i = 0; types[i] != DONE; i++) {
+	  switch(types[i]) {
+	  case INTEGER: {
+	       int vspec v = param(int,i);
+	       if (i == 4)
+		    return (mptr) compile(`{ ($vp)(@v); }, int);
+	       break;
+	  }
+	  }
+     }
+     return (mptr) compile(`{ ($vp)(3); }, int);
+}
+
+/* type cptr */
+void vfunc5(type *buf) {
+     printf("%d %d %d %d %d\n", buf[0].i, buf[1].i, 
+	    buf[2].i, buf[3].i, buf[4].i);
+}
+
+/* type mptr */
+void mfunc5(int a, int b, int c, int d, int e) {
+     if (optVerbose)
+	  printf("%d %d %d %d %d\n",a,b,c,d,e);
+}
+
+vptr mk_unmarshal(type_t *types) {
+     mptr vspec mp;
+     type * vspec m;
+     void cspec args;
+     int i; 
+
+     mp = param(mptr, 0);
+     m  = param(type *, 1);
+     args = push_init();
+
+     for(i = 0; types[i] != DONE; i++) {
+	  switch(types[i]) {
+	  case INTEGER:
+	       push(args, `(@m)[$i].i);
+	       break;
+	  case DOUBLE:
+	       push(args, `(@m)[$i].d);
+	       break;
+	  case POINTER:
+	       push(args, `(@m)[$i].p);
+	       break;
+	  }
+     }
+     return (vptr) compile(`{ (@mp)(@args); }, int);
+}
+
+main(int argc, char **argv) {
+     type_t types4[] = { INTEGER, INTEGER, INTEGER, INTEGER, DONE };
+     type_t types5[] = { INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, DONE };
+     type_t types6[] = { INTEGER, INTEGER, INTEGER, INTEGER, 
+			 INTEGER, INTEGER, DONE };
+     int i;
+     mptr f, f2;
+     xptr g, g2;
+     type buf[80];
+     type *m;
+     
+     doargs(argc, argv);
+     if (optDCG) {
+	  if (ndata) {
+	       printf("## mshl ##\n");
+
+	       g2 = mk_marshal(types5);	/* Warm cache */
+
+	       SWON("compilation");
+	       for (i=0; i<ncomp; i++) {
+		    g = mk_marshal(types5);
+		    decompile(g);
+	       }
+	       SWOFF;
+
+	       g = g2;
+	       if (!g) return;
+	       dump(g);
+
+	       m = g(1,2,3,4,5); /* Warm cache */
+	       SWON("run");
+	       for (i=0; i<nruns; i++)
+		    m = g(1,2,3,4,5);
+	       SWOFF;
+	       if (optVerbose)
+		    vfunc5(m);
+	  } else {
+	       printf("## umshl ##\n");
+
+	       buf[0].i = 1;
+	       buf[1].i = 2;
+	       buf[2].i = 3;
+	       buf[3].i = 4;
+	       buf[4].i = 5;
+
+	       f2 = mk_unmarshal(types5); /* Warm cache */
+
+	       SWON("compilation");
+	       for (i=0; i<ncomp; i++) {
+		    f = mk_unmarshal(types5);
+		    decompile(f);
+	       }
+	       SWOFF;
+
+	       f = f2;
+	       if (!f) return;
+	       dump(f);
+
+	       f(mfunc5,buf);	/* Warm cache */
+	       SWON("run");
+	       for (i=0; i<nruns; i++)
+		    f(mfunc5,buf);
+	       SWOFF;
+	  }
+     } else {
+	  if (ndata) {
+	       printf("## mshl ##\n");
+
+	       m = marshal(types5, 1,2,3,4,5); /* Warm cache */
+	       SWON("run");
+	       for (i=0; i<nruns; i++)
+		    m = marshal(types5, 1,2,3,4,5);
+	       SWOFF;
+	       if (optVerbose)
+		    vfunc5(m);
+	  } else {
+	       printf("## umshl ##\n");
+
+	       buf[0].i = 1;
+	       buf[1].i = 2;
+	       buf[2].i = 3;
+	       buf[3].i = 4;
+	       buf[4].i = 5;
+
+				/* Warm cache */
+	       mfunc5(buf[0].i,buf[1].i,buf[2].i,
+		      buf[3].i,buf[4].i);
+	       SWON("run");
+	       for (i=0; i<nruns; i++) {
+		    unmarshal(buf, mfunc5);
+	       }
+	       SWOFF;
+	  }
+     } 
+}

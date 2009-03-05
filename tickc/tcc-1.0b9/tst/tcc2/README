@@ -1,0 +1,5 @@
+Makefile.sampe: sample test makefile
+ref: reference output
+src: test source and input scripts for test driver
+bin: tree already set up for running [iv]code{,-c} tests.  Assumes tcc is in
+     ../../bin

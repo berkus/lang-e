@@ -1,0 +1,3 @@
+Makefile.sampe: sample test makefile
+ref: reference output
+src: test source and input scripts for test driver

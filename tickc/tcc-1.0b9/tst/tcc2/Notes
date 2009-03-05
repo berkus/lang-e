@@ -1,0 +1,2 @@
+To find outliers in the logs:
+ grep -n "of mean" 8.benchmark-logs | grep '(..\.'

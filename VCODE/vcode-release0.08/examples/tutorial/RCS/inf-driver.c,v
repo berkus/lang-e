@@ -1,0 +1,36 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.22.18.26.04;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@int main(void) {
+        v_uptr stream1, stream2;
+
+	/* Create two streams */
+	stream1 = mk_stream();
+	stream2 = mk_stream();
+
+	/* Demonstrate that they are independent */
+	printf("stream 1 = [%d, %d ..]\n", stream1(), stream1());
+	printf("stream 2 = [%d, %d ..]\n", stream2(), stream2());
+	return 0;
+}
+@

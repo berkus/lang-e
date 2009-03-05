@@ -1,0 +1,80 @@
+(
+	       binary =>  {
+		   prog	=>	"binary",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	0,
+	       },
+	       ilp => {
+		   prog	=>	"cmp2",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	4096,
+	       },
+	       dp => {
+		   prog	=>	"dp",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	64,		#32
+	       },
+	       heap => {
+		   prog	=>	"heap",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	500,
+	       },
+ 	       dheap => {
+ 		   prog	=>	"hp2",
+ 		   comp	=>	10,
+ 		   runs	=>	10,
+ 		   data	=>	500,
+ 	       },
+	       hash => {
+		   prog	=>	"hsh",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	0,
+	       },
+	       ms => {
+		   prog	=>	"ms",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	100,
+	       },
+	       ntn => {
+		   prog	=>	"ntn",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	0,
+	       },
+	       ntn1 => {
+		   prog	=>	"ntn1",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	0,
+	       },
+	       pow => {
+		   prog	=>	"pow",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	767,		#13
+	       },
+	       query => {
+		   prog	=>	"query",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	2000,
+	       },
+	       mshl => {
+		   prog	=>	"mshl2",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	1,
+	       },
+	       unmshl => {
+		   prog	=>	"mshl2",
+		   comp	=>	10,
+		   runs	=>	10,
+		   data	=>	0,
+	       },
+	  );

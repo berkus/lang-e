@@ -1,0 +1,119 @@
+#include "bench2.h"
+
+#define MSIZE 100
+
+typedef void (*vp)();
+
+void cspec mkscale(int s, int r, int c, int **m) {
+     return `{
+	  int i,j;
+	  /* $n can be encoded directly
+	     in the loop termination check */
+	  for (i = 0; i < $r; i++) {
+	       int *v = ($m)[i];
+	       for (j = 0; j < $c; j++)
+		    /* multiplication by `$s' can be
+		       strength-reduced at runtime */
+		    v[j] = v[j] * $s;
+	  }
+	  return 0;
+     };
+}
+
+int ** makematrix(int s) {
+     int r;
+     int **m;
+     m = (int**)malloc(s * sizeof(int *));
+     for (r = 0; r < s; r++)
+	  m[r] = (int *)malloc(s * sizeof(int));
+     return m;
+}
+
+void fillmatrix(int **m, int s) {
+     int r,c;
+     srandom(1);
+     for (r = 0; r < s; r++)
+	  for (c = 0; c < s; c++)
+	       m[r][c] = (int)(random()%0xF);
+}
+
+void printmatrix(int **m, int s) {
+     int r,c;
+     for (r=0;r<s;r++) {
+	  for (c=0;c<s;c++)
+	       printf ("%3d",m[r][c]);
+	  printf("\n");
+     }
+}
+
+void scalematrix(int **m, int s, int k) {
+     int r,c;
+     for (r=0;r<s;r++) {
+	  int *row = m[r];
+	  for (c=0;c<s;c++)
+	       row[c] *= k;
+     }
+}
+
+void main(int argc, char **argv) {
+     vp f, f2;
+     int r, j;
+     int **imatrix;
+
+     doargs(argc, argv);
+     xnruns = (ndata-10+1)*nruns;
+     xncomp = (ndata-10+1)*ncomp;
+     xndata = ndata;
+
+     printf("## ms ##\n");
+
+     imatrix = makematrix(MSIZE);
+     fillmatrix(imatrix,MSIZE);
+     if (optVerbose)
+	  printmatrix(imatrix,MSIZE);
+
+     if (optDCG) {
+				/* Warm cache */
+	  f2 = (vp)compile(mkscale((ndata+10)/2,MSIZE,MSIZE,imatrix),int);
+
+	  SWINIT("compilation");
+	  SWON;
+	  for (j = 10; j <= ndata; j++)
+	       for (r = 0; r < ncomp; r++) {
+		    f = (vp)compile(mkscale(j,MSIZE,MSIZE,imatrix),int);
+		    decompile(f);
+	       }
+	  SWOFF; SWDUMP;
+
+	  if (!f2) return;
+	  dump(f2);
+	  decompile(f2);
+
+	  SWINIT("run");
+	  for (j = 10; j <= ndata; j++) {
+	       f = (vp)compile(mkscale(j,MSIZE,MSIZE,imatrix),int);
+	       fillmatrix(imatrix,MSIZE);
+	       (*f)();		/* Warm the cache */
+	       SWON;
+	       for (r = 0; r < nruns; r++)
+		    (*f)();
+	       SWOFF;
+	       decompile(f);
+	  }
+	  SWDUMP;
+     } else {
+	  SWINIT("run");
+	  for (j = 10; j <= ndata; j++) {
+	       fillmatrix(imatrix,MSIZE);
+	       scalematrix(imatrix,MSIZE,ndata); /* Warm cache */
+	       SWON;
+	       for (r = 0; r < nruns; r++)
+		    scalematrix(imatrix,MSIZE,j);
+	       SWOFF;
+	  }
+	  SWDUMP;
+     }
+
+     if (optVerbose)
+	  printmatrix(imatrix,MSIZE);
+}

@@ -1,0 +1,37 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.22.18.26.04;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include <stdio.h>
+#include "vcode.h"		/* This header file defines all vcode insns. */
+
+int main(void) {
+	v_code insn[1000]; 	/* Memory to hold code in. */
+
+	/* Create a function to print standard greeting. */
+        v_lambda("hello-world", "", 0, V_NLEAF, insn);
+		/* Generate simple call to printf. */
+                v_scallv((void*)printf, "%P", "hello, world\n");
+        v_end().v(); 	/* Compile & call */
+	return 0;
+}
+@

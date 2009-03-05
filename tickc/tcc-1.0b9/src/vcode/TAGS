@@ -1,0 +1,1049 @@
+
+alpha-gen.c,1982
+static struct typeinfo typeinfo53,1895
+struct reg reg72,2463
+static struct reg argreg(78,2655
+void v_mach_push(96,3069
+void v_push_init(155,4992
+#define	FSAVESIZE	229,8539
+#define RSAVESIZE	230,8596
+#define ARGBUILDSIZE	231,8653
+void v_savep(243,9120
+void v_saveu(244,9163
+void v_savei(245,9206
+void v_saveul(246,9249
+void v_restorep(247,9293
+void v_restoreu(248,9342
+void v_restorei(249,9391
+void v_restoreul(250,9440
+void v_savel(253,9553
+void v_restorel(257,9646
+void v_savef(260,9726
+void v_restoref(264,9831
+void v_saved(268,9924
+void v_restored(272,10029
+void v_mach_call(278,10148
+void v_rmach_call(288,10438
+void v_mach_lambda(300,10727
+int v_restore_p(411,14042
+union v_fp v_mach_end(417,14227
+void pseudo_call(510,16887
+static inline long get_gp(538,17590
+#define HI32(HI32544,17663
+int FITS(546,17722
+void setu(553,17844
+void set64u(577,18402
+void set64(604,18942
+void set(630,19445
+void set(653,19871
+void v_jalpi(707,21705
+inline void addli(715,21890
+inline void addqi(729,22167
+inline void subqi(742,22400
+inline void subli(755,22635
+void stus(770,22915
+void stus(801,23429
+void ldus(837,24243
+void uldus(862,24741
+void uldul(879,25132
+void uldl(896,25502
+void ulds(904,25628
+void uldq(915,25905
+void uldu(932,26295
+void uldi(949,26681
+void ulduc(956,26807
+void uldc(967,27024
+void ustq(986,27426
+void usti(1010,28020
+void usts(1035,28615
+void ustb(1067,29277
+static inline int alignm(1099,30182
+void aldus(1107,30290
+void alds(1121,30596
+void aldc(1136,30931
+void alduc(1151,31264
+void aldl(1164,31525
+void aldq(1171,31669
+static int carea_alloc(1181,31920
+void cvd2l(1194,32244
+void cvd2i(1211,32664
+void cvl2f(1226,33004
+void cvl2d(1240,33319
+static unsigned getbytes(1262,33782
+void v_dump 1268,33903
+void v_flushcache(1277,34220
+int v_local(1292,34643
+int v_localb(1320,35535
+static struct lazy_arg lazy_arg1345,36142
+static void push_arg(1354,36321
+static void pop_args(1371,36805
+
+booth-gen.c,467
+#define ADD_COST 9,190
+#define SUB_COST 10,209
+#define NEG_COST 11,228
+#define SHIFT_COST 12,247
+#define HASH_SIZE 13,268
+}               MulOp;MulOp29,693
+struct node node32,725
+}               Node;Node38,859
+#define odd(odd53,1286
+#define even(even54,1311
+makeOdd(57,1350
+lookup(66,1433
+emit_shift(85,1811
+emit_code(100,2059
+try(179,3921
+find_sequence(192,4286
+estimate_cost(227,5206
+multiply(237,5367
+init_multiply(268,6179
+main(287,6523
+
+call.c,1365
+#define V_MAKE_REG_MAP4,97
+static void v_arg(11,225
+#define ARGI(ARGI22,445
+void v_push_argi(36,830
+void v_push_argii(38,906
+void v_push_argu(40,975
+void v_push_argui(42,1051
+void v_push_argl(44,1125
+void v_push_argli(46,1201
+void v_push_argul(48,1271
+void v_push_arguli(50,1349
+void v_push_argp(52,1431
+void v_push_argpi(54,1507
+void v_push_argf(56,1578
+void v_push_argfi(58,1654
+void v_push_argd(60,1725
+void v_push_argdi(62,1801
+void v_arg_push(66,1894
+static void ccall(70,1979
+inline void v_ccallv(74,2059
+inline v_reg_type v_ccalli(78,2135
+inline v_reg_type v_ccallu(84,2258
+inline v_reg_type v_ccallp(88,2356
+inline v_reg_type v_ccalll(92,2454
+inline v_reg_type v_ccallul(96,2552
+inline v_reg_type v_ccallf(100,2652
+inline v_reg_type v_ccalld(106,2767
+static void scall(120,3037
+void v_scallv(162,4203
+v_reg_type v_scalli(170,4355
+v_reg_type v_scallu(177,4543
+v_reg_type v_scallp(185,4732
+v_reg_type v_scallul(193,4921
+v_reg_type v_scalll(201,5112
+v_reg_type v_scallf(208,5300
+v_reg_type v_scalld(216,5481
+void v_fatal(224,5662
+v_reg_type v_sym_to_phys(234,5845
+void v_rccallv(249,6211
+inline v_reg_type v_rccalli(254,6306
+v_reg_type v_rccallu(260,6443
+v_reg_type v_rccallp(264,6532
+v_reg_type v_rccalll(268,6621
+v_reg_type v_rccallul(272,6710
+inline v_reg_type v_rccallf(276,6800
+v_reg_type v_rccalld(282,6929
+
+flushcache.c,24
+void v_flushcache(7,89
+
+fp-imm.c,187
+#define MAX_FP_IMMS 6,154
+static struct imm_entry imm_entry7,178
+static inline void im_enqueue(21,540
+void v_float_imm(35,1020
+void v_double_imm(43,1221
+void v_set_fp_imms(58,1657
+
+gen.c,492
+#define MAX(MAX18,574
+v_reg_type v_reg(29,866
+void v_begin(37,987
+int v_locked_p(52,1264
+int v_unlock(56,1310
+void v_init(62,1380
+v_code *v_stop(68,1448
+void v_set_ip(78,1664
+inline v_label_type v_genlabel(91,1963
+int v_labeleq(96,2029
+void v_label(100,2106
+void v_dlabel(101,2160
+static void lreset(108,2336
+int v_lambda(123,2703
+union v_fp v_end(140,3194
+void v_param_alloc(166,3622
+void v_param_push(187,4298
+void v_clambda(194,4468
+void v_reset_closure_state 219,5184
+
+link.c,890
+#define MAXLABELS 5,68
+#define FLAG 6,98
+#define MAXLINKS 7,128
+#define BBSIZE 26,510
+#define OPTBUF 27,578
+void v_bpo_on 38,1009
+void v_bpo_off 39,1047
+void v_bpo_init 42,1138
+void v_bpo_end 47,1227
+inline v_code *v_bpo 51,1276
+#define linkdbg(linkdbg66,1726
+static void mark(68,1759
+void v_link_reset(76,1949
+void v_jmark(83,2168
+void v_dmark(92,2369
+void v_lmark(101,2560
+void v_link(111,2820
+void v_link(152,4036
+void v_link(215,5532
+#			define LOWER21(LOWER21259,6872
+#define _op(_op277,7305
+#define _op2(_op2278,7337
+#define _op3(_op3279,7369
+#define _is_nop(_is_nop280,7402
+#define _is_call(_is_call281,7439
+#define _is_jmpl(_is_jmpl282,7471
+#define _is_rett(_is_rett283,7520
+#define _is_trap(_is_trap284,7569
+#define _is_jump(_is_jump285,7618
+#define _can_delay(_can_delay286,7694
+void v_link(290,7820
+#			define LOWER22(LOWER22312,8577
+
+mem.c,184
+#define roundup(roundup7,69
+#define CHUNKSIZE 8,117
+struct block block16,288
+union align align21,367
+union header header27,443
+void *v_aalloc(36,594
+void v_adealloc(65,1303
+
+mips-gen.c,1133
+static struct typeinfo typeinfo42,1597
+#define leaf_offset(leaf_offset58,2085
+struct reg reg71,2507
+static struct reg argreg(75,2571
+void v_mach_push(103,3538
+void v_push_init(164,5785
+#define	FSAVESIZE	205,7396
+#define RSAVESIZE	206,7453
+#define ARGBUILDSIZE	207,7510
+void v_mach_call(218,7889
+void v_rmach_call(239,8307
+void v_mach_lambda(252,8567
+int v_restore_p(383,12303
+union v_fp v_mach_end(389,12481
+static unsigned long getbytes(504,15364
+void v_dump 510,15500
+void v_flushcache(519,15817
+int v_local(537,16318
+int v_localb(565,17137
+static struct lazy_arg lazy_arg587,17685
+static void push_arg(596,17836
+static void pop_args(613,18222
+inline void v_savep(653,19016
+inline void v_saveu(654,19066
+inline void v_savel(655,19116
+inline void v_saveul(656,19166
+inline void v_restorep(657,19217
+inline void v_restoreu(658,19273
+inline void v_restorel(659,19329
+inline void v_restoreul(660,19385
+void v_savei(665,19551
+void v_restorei(670,19667
+void v_savef(675,19771
+void v_restoref(681,19900
+void v_saved(686,20016
+void v_restored(692,20145
+void cvtd2w(698,20292
+void cvts2w(712,20638
+
+mult.c,139
+#define isequal(isequal6,75
+#define isequal(isequal8,124
+#define mkmgen(mkmgen16,330
+#define mkcmul(mkcmul96,2636
+mkmgen(119,3206
+
+poly-insns.c,79
+void v_pset(6,155
+void v_pmov(24,954
+void v_pst(42,1575
+void v_pld(60,2271
+
+portable-insts.c,146
+static inline int alignm(9,219
+	void v_alduci(19,432
+	void v_aldci(26,602
+	void v_aldusi(32,730
+	void v_aldsi(42,1022
+	void v_aldii(52,1312
+
+register.c,1500
+	typedef unsigned reg_t;reg_t6,82
+	typedef unsigned char reg_t;reg_t8,153
+#define MAX_REGS	12,279
+typedef unsigned uint32;uint3213,299
+struct v_reg_class v_reg_class16,404
+#define R(R49,1722
+#define BIT_OFF(BIT_OFF50,1746
+#define BIT_ON(BIT_ON51,1789
+#define SET_P(SET_P52,1830
+#	define IS_FREE(IS_FREE56,1930
+#	define SET_FREE(SET_FREE57,1979
+# 	define SET_ALLOCED(SET_ALLOCED58,2030
+#	define IS_FREE(IS_FREE60,2092
+#	define SET_FREE(SET_FREE61,2121
+# 	define SET_ALLOCED(SET_ALLOCED62,2157
+#define v_pop(v_pop65,2205
+#define v_push(v_push70,2415
+#       define NREGS 76,2535
+#define V_REG_SENTINAL 80,2621
+#define ITER_INITIAL 82,2704
+#define types(types90,2831
+static void reset(110,3363
+static void ffb_table_init(121,3698
+static inline unsigned long firstbitset(126,3797
+#       define to8 127,3856
+#       define to16 128,3885
+#       define to24 129,3915
+#       define byte(byte131,3979
+void register_reset(151,4546
+static void initialize(170,4963
+static int count_bits(189,5369
+ralloc(197,5494
+putreg(240,6733
+static unsigned get_accum(258,7306
+static int r_remove(273,7706
+static void r_add(302,8288
+void v_pickreg(320,8687
+int v_getreg(343,9309
+void v_putreg(371,10021
+int v_get_temps(393,10667
+void v_rawput(411,11114
+int v_naccum(428,11690
+int v_reg_iter(438,11950
+void v_mk_unavail(463,12595
+void v_mk_temp(492,13363
+void v_mk_var(496,13463
+unsigned v_enum_rclass(502,13603
+int v_istemp(529,14594
+v_move_regs(537,14725
+
+sparc-dis.c,18
+void v_dump 4,65
+
+sparc-gen.c,1413
+#define MAX(MAX8,109
+static struct typeinfo typeinfo44,1414
+struct reg reg68,2062
+static struct reg argreg(71,2118
+#define	FSAVESIZE	132,4133
+#define RSAVESIZE	133,4190
+#define ARGBUILDSIZE	134,4246
+#define WINDOW_SIZE	139,4433
+#define INCOMING_SIZE 140,4462
+#define HIDDEN_PARAM 141,4494
+#define ARG_OFFSET	144,4568
+#define GP_SAVE_OFFSET 145,4633
+#define FP_SAVE_OFFSET	146,4685
+#define LOCAL_OFFSET	147,4737
+void v_savep(159,5178
+void v_saveu(160,5221
+void v_savel(161,5264
+void v_saveul(162,5307
+void v_restorep(163,5351
+void v_restoreu(164,5400
+void v_restorel(165,5449
+void v_restoreul(166,5498
+void v_savef(168,5549
+void v_restoref(172,5653
+void v_saved(176,5760
+void v_restored(180,5864
+void v_savei(186,6034
+void v_restorei(190,6146
+void v_push_init(196,6307
+void v_mach_push(201,6412
+void v_mach_call(281,8750
+void v_rmach_call(304,9508
+void v_mach_lambda(328,10300
+union v_fp v_mach_end(478,14470
+void v__mul(516,15219
+void v__umul(520,15322
+void v__div(524,15426
+void v__udiv(528,15529
+static int __mul(542,15955
+static int __div(543,16023
+static unsigned __umul(544,16091
+static unsigned __udiv(545,16159
+void v__mul(547,16228
+void v__div(555,16416
+void v__umul(563,16604
+void v__udiv(571,16800
+static int __rem(581,17004
+static unsigned __urem(582,17072
+void v__rem(584,17141
+void v__urem(592,17316
+int v_local(607,17741
+int v_localb(635,18578
+
+ss-gen.c,1043
+#define MAXLENGTH 10,150
+static struct typeinfo typeinfo42,1664
+#define leaf_offset(leaf_offset58,2152
+struct reg reg71,2574
+static struct reg argreg(75,2638
+void v_mach_push(103,3605
+void v_push_init(164,5852
+#define	FSAVESIZE	205,7463
+#define RSAVESIZE	206,7520
+#define ARGBUILDSIZE	207,7577
+void v_mach_call(218,7956
+void v_rmach_call(233,8242
+void v_mach_lambda(246,8501
+int v_restore_p(369,12025
+union v_fp v_mach_end(375,12203
+void v_dump 479,14701
+int v_local(517,15725
+int v_localb(545,16544
+static struct lazy_arg lazy_arg567,17092
+static void push_arg(576,17243
+static void pop_args(593,17630
+inline void v_savep(619,18073
+inline void v_saveu(620,18123
+inline void v_savel(621,18173
+inline void v_saveul(622,18223
+inline void v_restorep(623,18274
+inline void v_restoreu(624,18330
+inline void v_restorel(625,18386
+inline void v_restoreul(626,18442
+void v_savei(631,18608
+void v_restorei(636,18724
+void v_savef(641,18828
+void v_restoref(647,18957
+void v_saved(652,19073
+void v_restored(658,19202
+
+ssflush.c,24
+void v_flushcache(3,22
+
+xlate.c,58
+static inline char * xlatee(6,217
+int *v_xlatel(61,2180
+
+alpha-osf-config.h,512
+#define __ALPHA_H__2,20
+#define ALPHA4,41
+#define V_TI0	40,1190
+#define V_TI1	41,1215
+#define V_TI2	42,1240
+#define V_TI3	43,1265
+#define V_TF0	45,1291
+#define V_TF1	46,1317
+#define V_TF2	47,1343
+#define V_TF3	48,1369
+static struct reg_map reg_map81,2557
+struct v_cstate v_cstate121,3522
+#       define V_COOKIE 122,3540
+#	define V_MAXARGS 134,3735
+#define TEMPI 137,3816
+#define VARI 140,3947
+#define TEMPF 142,4014
+#define VARF 145,4171
+#define N_VARS	148,4246
+#define N_FP_VARS 149,4300
+
+ansidecl.h,853
+#define	_ANSIDECL_H	85,2963
+#define	PTR	98,3376
+#define	PTRCONST	99,3396
+#define	LONG_DOUBLE	100,3425
+#define	AND	102,3458
+#define	NOARGS	103,3473
+#define	CONST	104,3494
+#define	VOLATILE	105,3515
+#define	SIGNED	106,3541
+#define	DOTS	107,3564
+#define	EXFUN(EXFUN109,3585
+#define	DEFUN(DEFUN110,3624
+#define	DEFUN_VOID(DEFUN_VOID111,3670
+#define PROTO(PROTO113,3708
+#define PARAMS(PARAMS114,3761
+#define ANSI_PROTOTYPES	115,3798
+#define	PTR	119,3853
+#define	PTRCONST	120,3873
+#define	LONG_DOUBLE	121,3894
+#define	AND	123,3922
+#define	NOARGS124,3937
+#define	CONST125,3952
+#define	const127,4043
+#define	VOLATILE129,4064
+#define	SIGNED130,4081
+#define	DOTS131,4096
+#define	EXFUN(EXFUN133,4110
+#define	DEFUN(DEFUN134,4145
+#define	DEFUN_VOID(DEFUN_VOID135,4199
+#define PROTO(PROTO136,4232
+#define PARAMS(PARAMS137,4280
+
+bfd.h,12809
+#define __BFD_H_SEEN__45,2046
+#define BFD_VERSION 51,2188
+#define BFD_ARCH_SIZE 52,2216
+#define BFD6455,2266
+#define INLINE 60,2321
+#define INLINE62,2353
+typedef struct _bfd bfd;bfd70,2479
+typedef enum bfd_boolean bfd_boolean86,3308
+typedef enum bfd_boolean {false, true} boolean;boolean86,3308
+#define BFD_TRUE_FALSE87,3356
+typedef enum bfd_boolean bfd_boolean89,3385
+typedef enum bfd_boolean {bfd_false, bfd_true} boolean;boolean89,3385
+typedef long int file_ptr;file_ptr100,3908
+#define BFD_HOST_64_BIT 116,4576
+typedef BFD_HOST_64_BIT int64_type;int64_type117,4610
+typedef unsigned BFD_HOST_64_BIT uint64_type;uint64_type118,4646
+#define uint64_type 122,4749
+#define int64_type 123,4788
+#define uint64_typeLOW(uint64_typeLOW126,4847
+#define uint64_typeHIGH(uint64_typeHIGH127,4911
+typedef unsigned BFD_HOST_64_BIT bfd_vma;bfd_vma130,4990
+typedef BFD_HOST_64_BIT bfd_signed_vma;bfd_signed_vma131,5032
+typedef unsigned BFD_HOST_64_BIT bfd_size_type;bfd_size_type132,5072
+typedef unsigned BFD_HOST_64_BIT symvalue;symvalue133,5120
+#define fprintf_vma(fprintf_vma135,5183
+#define sprintf_vma(sprintf_vma137,5275
+typedef unsigned long bfd_vma;bfd_vma145,5565
+typedef long bfd_signed_vma;bfd_signed_vma151,5867
+typedef unsigned long symvalue;symvalue153,5897
+typedef unsigned long bfd_size_type;bfd_size_type154,5929
+#define fprintf_vma(fprintf_vma157,6005
+#define sprintf_vma(sprintf_vma158,6053
+#define printf_vma(printf_vma160,6125
+typedef unsigned int flagword;flagword162,6170
+typedef enum bfd_format bfd_format166,6247
+         bfd_format;bfd_format172,6519
+#define NO_FLAGS 182,6959
+#define HAS_RELOC 185,7026
+#define EXEC_P 188,7088
+#define HAS_LINENO 192,7203
+#define HAS_DEBUG 195,7268
+#define HAS_SYMS 198,7319
+#define HAS_LOCALS 202,7425
+#define DYNAMIC 205,7484
+#define WP_TEXT 210,7678
+#define D_PAGED 214,7845
+#define BFD_IS_RELAXABLE 219,8039
+#define BFD_TRADITIONAL_FORMAT 225,8294
+typedef unsigned long symindex;symindex230,8418
+#define BFD_NO_MORE_SYMBOLS 232,8451
+#define bfd_get_section(bfd_get_section237,8599
+#define bfd_get_output_section(bfd_get_output_section238,8641
+#define bfd_set_section(bfd_set_section239,8706
+#define bfd_asymbol_base(bfd_asymbol_base240,8756
+#define bfd_asymbol_value(bfd_asymbol_value241,8804
+#define bfd_asymbol_name(bfd_asymbol_name242,8868
+#define bfd_asymbol_bfd(bfd_asymbol_bfd244,8977
+#define bfd_asymbol_flavour(bfd_asymbol_flavour245,9019
+typedef struct carsym carsym249,9178
+} carsym;carsym252,9274
+struct orl orl257,9441
+typedef struct lineno_cache_entry lineno_cache_entry266,9634
+} alent;alent272,9864
+#define	align_power(align_power276,9912
+typedef struct sec *sec_ptr;sec_ptr279,9998
+#define bfd_get_section_name(bfd_get_section_name281,10028
+#define bfd_get_section_vma(bfd_get_section_vma282,10085
+#define bfd_get_section_alignment(bfd_get_section_alignment283,10140
+#define bfd_section_name(bfd_section_name284,10213
+#define bfd_section_size(bfd_section_size285,10262
+#define bfd_section_vma(bfd_section_vma286,10338
+#define bfd_section_alignment(bfd_section_alignment287,10385
+#define bfd_get_section_flags(bfd_get_section_flags288,10450
+#define bfd_get_section_userdata(bfd_get_section_userdata289,10509
+#define bfd_is_com_section(bfd_is_com_section291,10571
+#define bfd_set_section_vma(bfd_set_section_vma293,10642
+#define bfd_set_section_alignment(bfd_set_section_alignment294,10756
+#define bfd_set_section_userdata(bfd_set_section_userdata295,10845
+typedef struct stat stat_type;stat_type297,10927
+typedef enum bfd_print_symbolbfd_print_symbol299,10961
+} bfd_print_symbol_type;bfd_print_symbol_type304,11067
+typedef struct _symbol_info_symbol_info308,11147
+} symbol_info;symbol_info316,11384
+struct bfd_hash_entrybfd_hash_entry323,11611
+struct bfd_hash_tablebfd_hash_table336,11890
+#define CAT(CAT407,14776
+#define CAT3(CAT3408,14798
+#define CAT4(CAT4409,14826
+#define CAT(CAT412,14911
+#define CAT3(CAT3413,14933
+#define XCAT2(XCAT2414,14961
+#define CAT4(CAT4415,14989
+#define CAT(CAT417,15042
+#define CAT3(CAT3418,15066
+#define CAT4(CAT4419,15098
+#define COFF_SWAP_TABLE 424,15159
+#define bfd_get_filename(bfd_get_filename442,15922
+#define bfd_get_cacheable(bfd_get_cacheable443,15981
+#define bfd_get_format(bfd_get_format444,16033
+#define bfd_get_target(bfd_get_target445,16079
+#define bfd_get_flavour(bfd_get_flavour446,16129
+#define bfd_get_file_flags(bfd_get_file_flags447,16183
+#define bfd_applicable_file_flags(bfd_applicable_file_flags448,16232
+#define bfd_applicable_section_flags(bfd_applicable_section_flags449,16301
+#define bfd_my_archive(bfd_my_archive450,16374
+#define bfd_has_map(bfd_has_map451,16424
+#define bfd_valid_reloc_types(bfd_valid_reloc_types453,16471
+#define bfd_usrdata(bfd_usrdata454,16541
+#define bfd_get_start_address(bfd_get_start_address456,16586
+#define bfd_get_symcount(bfd_get_symcount457,16646
+#define bfd_get_outsymbols(bfd_get_outsymbols458,16696
+#define bfd_count_sections(bfd_count_sections459,16750
+#define bfd_get_symbol_leading_char(bfd_get_symbol_leading_char461,16808
+#define bfd_set_cacheable(bfd_set_cacheable463,16887
+#define bfd_put_8(bfd_put_8596,22083
+#define bfd_put_signed_8 598,22186
+#define bfd_get_8(bfd_get_8600,22225
+#define bfd_get_signed_8(bfd_get_signed_8602,22298
+#define bfd_put_16(bfd_put_16605,22381
+#define bfd_put_signed_16 607,22476
+#define bfd_get_16(bfd_get_16609,22518
+#define bfd_get_signed_16(bfd_get_signed_16611,22600
+#define bfd_put_32(bfd_put_32614,22694
+#define bfd_put_signed_32 616,22789
+#define bfd_get_32(bfd_get_32618,22831
+#define bfd_get_signed_32(bfd_get_signed_32620,22913
+#define bfd_put_64(bfd_put_64623,22998
+#define bfd_put_signed_64 625,23094
+#define bfd_get_64(bfd_get_64627,23136
+#define bfd_get_signed_64(bfd_get_signed_64629,23218
+#define bfd_h_put_8(bfd_h_put_8635,23356
+#define bfd_h_put_signed_8(bfd_h_put_signed_8637,23423
+#define bfd_h_get_8(bfd_h_get_8639,23497
+#define bfd_h_get_signed_8(bfd_h_get_signed_8641,23554
+#define bfd_h_put_16(bfd_h_put_16644,23626
+#define bfd_h_put_signed_16 646,23720
+#define bfd_h_get_16(bfd_h_get_16648,23766
+#define bfd_h_get_signed_16(bfd_h_get_signed_16650,23851
+#define bfd_h_put_32(bfd_h_put_32653,23940
+#define bfd_h_put_signed_32 655,24034
+#define bfd_h_get_32(bfd_h_get_32657,24080
+#define bfd_h_get_signed_32(bfd_h_get_signed_32659,24165
+#define bfd_h_put_64(bfd_h_put_64662,24254
+#define bfd_h_put_signed_64 664,24349
+#define bfd_h_get_64(bfd_h_get_64666,24395
+#define bfd_h_get_signed_64(bfd_h_get_signed_64668,24480
+typedef struct secsec671,24569
+#define SEC_NO_FLAGS SEC_NO_FLAGS692,25115
+#define SEC_ALLOC SEC_ALLOC697,25307
+#define SEC_LOAD SEC_LOAD701,25458
+#define SEC_RELOC SEC_RELOC705,25608
+#define SEC_BALIGN SEC_BALIGN708,25664
+#define SEC_READONLY SEC_READONLY713,25787
+#define SEC_CODE SEC_CODE716,25864
+#define SEC_DATA SEC_DATA719,25941
+#define SEC_ROM SEC_ROM722,26018
+#define SEC_CONSTRUCTOR SEC_CONSTRUCTOR734,26725
+#define SEC_CONSTRUCTOR_TEXT SEC_CONSTRUCTOR_TEXT738,26880
+#define SEC_CONSTRUCTOR_DATA SEC_CONSTRUCTOR_DATA739,26916
+#define SEC_CONSTRUCTOR_BSS SEC_CONSTRUCTOR_BSS740,26952
+#define SEC_HAS_CONTENTS SEC_HAS_CONTENTS745,27161
+#define SEC_NEVER_LOAD SEC_NEVER_LOAD749,27334
+#define SEC_COFF_SHARED_LIBRARY SEC_COFF_SHARED_LIBRARY760,27936
+#define SEC_IS_COMMON SEC_IS_COMMON767,28309
+#define SEC_DEBUGGING SEC_DEBUGGING773,28557
+#define SEC_IN_MEMORY SEC_IN_MEMORY779,28819
+} asection asection899,32362
+#define BFD_ABS_SECTION_NAME 906,32697
+#define BFD_UND_SECTION_NAME 907,32734
+#define BFD_COM_SECTION_NAME 908,32771
+#define BFD_IND_SECTION_NAME 909,32808
+#define bfd_abs_section_ptr 913,32917
+#define bfd_is_abs_section(bfd_is_abs_section914,32977
+#define bfd_und_section_ptr 917,33123
+#define bfd_is_und_section(bfd_is_und_section918,33183
+#define bfd_com_section_ptr 921,33326
+#define bfd_ind_section_ptr 924,33468
+#define bfd_is_ind_section(bfd_is_ind_section925,33528
+#define bfd_get_section_size_before_reloc(bfd_get_section_size_before_reloc931,33844
+#define bfd_get_section_size_after_reloc(bfd_get_section_size_after_reloc933,33960
+#define bfd_copy_private_section_data(bfd_copy_private_section_data976,35051
+enum bfd_architecture bfd_architecture979,35214
+#define bfd_mach_i960_core 994,35782
+#define bfd_mach_i960_ka_sa 995,35816
+#define bfd_mach_i960_kb_sb 996,35850
+#define bfd_mach_i960_mc 997,35884
+#define bfd_mach_i960_xa 998,35918
+#define bfd_mach_i960_ca 999,35952
+#define bfd_mach_h8300 1015,36562
+#define bfd_mach_h8300h 1016,36589
+#define bfd_mach_z8001	1021,36775
+#define bfd_mach_z8002	1022,36801
+typedef struct bfd_arch_info bfd_arch_info1031,37089
+typedef enum bfd_reloc_statusbfd_reloc_status1097,38853
+ bfd_reloc_status_type;bfd_reloc_status_type1126,39689
+typedef struct reloc_cache_entryreloc_cache_entry1129,39715
+} arelent;arelent1143,40082
+enum complain_overflowcomplain_overflow1144,40093
+typedef unsigned char bfd_byte;bfd_byte1162,40532
+typedef struct reloc_howto_struct reloc_howto_type;reloc_howto_type1163,40564
+struct reloc_howto_structreloc_howto_struct1165,40617
+#define HOWTO(HOWTO1246,44239
+#define NEWHOWTO(NEWHOWTO1248,44383
+#define HOWTO_PREPARE(HOWTO_PREPARE1250,44505
+typedef struct relent_chain relent_chain1264,45061
+} arelent_chain;arelent_chain1267,45140
+enum bfd_reloc_code_real bfd_reloc_code_real1287,45528
+#define BFD_RELOC_SPARC_64 1366,47921
+#define BFD_RELOC_MIPS_GPREL 1445,50784
+#define BFD_RELOC_MIPS_GPREL32 1453,50985
+typedef enum bfd_reloc_code_real bfd_reloc_code_real_type;bfd_reloc_code_real_type1508,52611
+typedef struct symbol_cache_entrysymbol_cache_entry1517,52864
+#define BSF_NO_FLAGS BSF_NO_FLAGS1542,53843
+#define BSF_LOCAL	BSF_LOCAL1546,53989
+#define BSF_GLOBAL	BSF_GLOBAL1550,54135
+#define BSF_EXPORT	BSF_EXPORT1554,54271
+#define BSF_DEBUGGING	BSF_DEBUGGING1562,54532
+#define BSF_FUNCTION BSF_FUNCTION1566,54654
+#define BSF_KEEP BSF_KEEP1569,54712
+#define BSF_KEEP_G BSF_KEEP_G1570,54741
+#define BSF_WEAK BSF_WEAK1574,54880
+#define BSF_SECTION_SYM BSF_SECTION_SYM1578,55008
+#define BSF_OLD_COMMON BSF_OLD_COMMON1582,55115
+#define BFD_FORT_COMM_DEFAULT_VALUE BFD_FORT_COMM_DEFAULT_VALUE1585,55189
+#define BSF_NOT_AT_END BSF_NOT_AT_END1593,55532
+#define BSF_CONSTRUCTOR BSF_CONSTRUCTOR1596,55633
+#define BSF_WARNING BSF_WARNING1602,55881
+#define BSF_INDIRECT BSF_INDIRECT1607,56068
+#define BSF_FILE BSF_FILE1611,56204
+#define BSF_DYNAMIC	BSF_DYNAMIC1614,56291
+} asymbol;asymbol1627,56647
+#define bfd_get_symtab_upper_bound(bfd_get_symtab_upper_bound1628,56658
+#define bfd_is_local_label(bfd_is_local_label1633,56824
+#define bfd_canonicalize_symtab(bfd_canonicalize_symtab1635,56918
+#define bfd_make_empty_symbol(bfd_make_empty_symbol1644,57208
+#define bfd_make_debug_symbol(bfd_make_debug_symbol1646,57299
+struct _bfd _bfd1654,57536
+typedef enum bfd_errorbfd_error1801,62205
+} bfd_error_type;bfd_error_type1820,62729
+#define bfd_copy_private_bfd_data(bfd_copy_private_bfd_data1874,63722
+#define bfd_sizeof_headers(bfd_sizeof_headers1877,63837
+#define bfd_find_nearest_line(bfd_find_nearest_line1880,63937
+#define bfd_debug_info_start(bfd_debug_info_start1884,64173
+#define bfd_debug_info_end(bfd_debug_info_end1887,64266
+#define bfd_debug_info_accumulate(bfd_debug_info_accumulate1890,64355
+#define bfd_stat_arch_elt(bfd_stat_arch_elt1894,64477
+#define bfd_update_armap_timestamp(bfd_update_armap_timestamp1897,64575
+#define bfd_set_arch_mach(bfd_set_arch_mach1900,64680
+#define bfd_get_relocated_section_contents(bfd_get_relocated_section_contents1903,64791
+#define bfd_relax_section(bfd_relax_section1907,65029
+#define bfd_link_hash_table_create(bfd_link_hash_table_create1910,65169
+#define bfd_link_add_symbols(bfd_link_add_symbols1913,65267
+#define bfd_final_link(bfd_final_link1916,65365
+#define bfd_free_cached_info(bfd_free_cached_info1919,65451
+#define bfd_get_dynamic_symtab_upper_bound(bfd_get_dynamic_symtab_upper_bound1922,65543
+#define bfd_canonicalize_dynamic_symtab(bfd_canonicalize_dynamic_symtab1925,65657
+#define bfd_get_dynamic_reloc_upper_bound(bfd_get_dynamic_reloc_upper_bound1928,65785
+#define bfd_canonicalize_dynamic_reloc(bfd_canonicalize_dynamic_reloc1931,65897
+#define BFD_SEND(BFD_SEND1956,66533
+#define BFD_SEND(BFD_SEND1961,66665
+#define BFD_SEND_FMT(BFD_SEND_FMT1966,66856
+#define BFD_SEND_FMT(BFD_SEND_FMT1971,67012
+enum bfd_flavour bfd_flavour1976,67224
+typedef struct bfd_link_info _bfd_link_info;_bfd_link_info1991,67602
+typedef struct bfd_targetbfd_target1993,67648
+
+bv.h,1166
+#define __BV_H__6,119
+typedef unsigned long * bvt;bvt20,308
+#define bv_dx 21,359
+#define cb(cb39,947
+static inline unsigned int bv_nwords 42,1098
+static inline bvt bv_new 54,1564
+static inline bvt bv_init 65,1890
+static inline void bv_clear 76,2230
+static inline void bv_set 82,2431
+static inline unsigned int bv_setf 96,2934
+static inline void bv_cset 113,3497
+static inline unsigned int bv_setp 128,4026
+static inline void bv_unset 141,4491
+static inline unsigned int bv_unsetf 155,4999
+static inline bvt bv_cp 171,5507
+static inline void bv_cpto 180,5751
+static inline unsigned int bv_eq 188,5975
+static inline unsigned int bv_subset 197,6221
+static inline void bv_union 209,6520
+static inline bvt bv_runion 217,6734
+static inline bvt bv_rinter 229,7021
+static inline void bv_xor 241,7301
+static inline void bv_diff 249,7505
+static inline bvt bv_rdiff 257,7716
+static inline bvt bv_new1 272,8205
+static inline void bv_fill 284,8551
+static inline void bv_not 293,8846
+static inline void bv_eachbit 302,9121
+static inline int bv_firstbit 354,10914
+static inline unsigned int bv_num 386,11813
+static inline void bv_unparse 417,12651
+
+cachectl.h,123
+#define ICACHE 16,626
+#define DCACHE 17,678
+#define BCACHE 18,730
+#define CACHEABLE 23,830
+#define UNCACHEABLE 24,891
+
+demand.h,130
+#define __DEMAND__2,19
+#       define demand(demand5,57
+#       define demand(demand8,116
+#	define __demand(__demand15,364
+
+dis-asm.h,342
+typedef int (*fprintf_ftype)fprintf_ftype12,391
+enum dis_insn_type dis_insn_type14,456
+typedef struct disassemble_info disassemble_info35,1402
+typedef int (*disassembler_ftype)disassembler_ftype94,3530
+#define INIT_DISASSEMBLE_INFO(INIT_DISASSEMBLE_INFO145,6193
+#define GDB_INIT_DISASSEMBLE_INFO(GDB_INIT_DISASSEMBLE_INFO176,7182
+
+mem.h,126
+#define __AMEM_H__4,31
+#define NEW(NEW14,253
+#define NEW0(NEW016,343
+#define NEW1(NEW121,514
+#define NEWX(NEWX26,685
+
+mips-irix-config.h,17
+#define SGI2,12
+
+mips-ultrix-config.h,584
+#define __MIPS_H__2,19
+#define MIPS4,39
+#define V_TI0	38,1038
+#define V_TI1	39,1063
+#define V_TI2	40,1088
+#define V_TI3	41,1113
+#define V_TI4	42,1138
+#define V_TI5	43,1163
+#define V_TF0 46,1190
+#define V_TF1 47,1217
+#define V_TF2 48,1244
+static struct reg_map reg_map53,1375
+struct v_cstate v_cstate93,2334
+#	define V_COOKIE	94,2352
+#define V_MAXARGS 105,2532
+#define __BASE_INT_TEMPS 107,2605
+#	define TEMPI 112,2736
+#	define TEMPI 115,2803
+#define N_VARS	118,2852
+#define NFP_VARS 119,2906
+#define VARI 121,2971
+#define TEMPF 122,3049
+#define VARF 123,3102
+
+obstack.h,2572
+#define __OBSTACK_H__104,4735
+#define __PTR_TO_INT(__PTR_TO_INT111,4964
+#define __INT_TO_PTR(__INT_TO_PTR115,5035
+#define __need_ptrdiff_t128,5574
+#define PTR_INT_TYPE 136,5658
+#define PTR_INT_TYPE 138,5695
+struct _obstack_chunk	_obstack_chunk141,5729
+struct obstack	obstack148,5957
+#define obstack_base(obstack_base231,9309
+#define obstack_chunk_size(obstack_chunk_size235,9422
+#define obstack_next_free(obstack_next_free239,9536
+#define obstack_alignment_mask(obstack_alignment_mask243,9686
+#define obstack_init(obstack_init245,9743
+#define obstack_begin(obstack_begin249,9875
+#define obstack_specify_allocation(obstack_specify_allocation253,10019
+#define obstack_specify_allocation_with_arg(obstack_specify_allocation_with_arg257,10200
+#define obstack_chunkfun(obstack_chunkfun261,10404
+#define obstack_freefun(obstack_freefun264,10515
+#define obstack_1grow_fast(obstack_1grow_fast267,10604
+#define obstack_blank_fast(obstack_blank_fast269,10671
+#define __extension__273,10791
+#define obstack_object_size(obstack_object_size281,11023
+#define obstack_room(obstack_room287,11228
+#define obstack_grow(obstack_grow292,11391
+#define obstack_grow0(obstack_grow0305,11801
+#define obstack_1grow(obstack_1grow319,12264
+#define obstack_ptr_grow(obstack_ptr_grow332,12730
+#define obstack_int_grow(obstack_int_grow341,13064
+#define obstack_ptr_grow_fast(obstack_ptr_grow_fast350,13388
+#define obstack_int_grow_fast(obstack_int_grow_fast351,13472
+#define obstack_blank(obstack_blank353,13552
+#define obstack_alloc(obstack_alloc363,13878
+#define obstack_copy(obstack_copy369,14056
+#define obstack_copy0(obstack_copy0375,14245
+#define obstack_finish(obstack_finish383,14534
+#define obstack_free(obstack_free404,15265
+#define obstack_object_size(obstack_object_size414,15614
+#define obstack_room(obstack_room417,15720
+#define obstack_grow(obstack_grow426,16056
+#define obstack_grow0(obstack_grow0434,16359
+#define obstack_1grow(obstack_1grow443,16705
+#define obstack_ptr_grow(obstack_ptr_grow449,16909
+#define obstack_int_grow(obstack_int_grow455,17190
+#define obstack_ptr_grow_fast(obstack_ptr_grow_fast461,17456
+#define obstack_int_grow_fast(obstack_int_grow_fast462,17540
+#define obstack_blank(obstack_blank464,17620
+#define obstack_alloc(obstack_alloc471,17870
+#define obstack_copy(obstack_copy474,17965
+#define obstack_copy0(obstack_copy0477,18072
+#define obstack_finish(obstack_finish480,18181
+#define obstack_free(obstack_free496,18785
+#define obstack_free(obstack_free503,19122
+
+sparc-solaris-config.h,57
+#define _V_SOLARIS_2,20
+#define SPARC_NO_SYNTHETIC5,74
+
+sparc-sunos-config.h,701
+#define __SPARC_H__2,20
+#define SPARC4,41
+#define SPARC_NO_SYNTHETIC8,142
+static struct reg_map reg_map42,1258
+#define V_TI0	87,2086
+#define V_TI1	88,2111
+#define V_TI2	89,2136
+#define V_TI3	90,2161
+#define V_SI0	92,2187
+#define V_SI1	93,2212
+#define V_SI2	94,2237
+#define V_SI3	95,2262
+#define V_TF0 97,2288
+#define V_TF1 98,2315
+#define V_TF2 99,2342
+#define V_TF3 100,2369
+struct v_cstate v_cstate114,2886
+#       define V_COOKIE 115,2904
+#define V_MAXARGS 140,3479
+#define IN 142,3552
+#define OUT 143,3633
+#define LOCAL 144,3714
+#define GLOBAL 145,3795
+#define FPREGS 146,3870
+#define TEMPI 151,4096
+#define VARI 152,4119
+#define TEMPF 153,4141
+#define VARF 154,4164
+
+ssbig-sstrix-config.h,606
+#define __SIMPLE_SCALAR_H__2,28
+#define __SIMPLE_SCALAR__5,83
+#define V_TI0	40,1102
+#define V_TI1	41,1127
+#define V_TI2	42,1152
+#define V_TI3	43,1177
+#define V_TI4	44,1202
+#define V_TI5	45,1227
+#define V_TF0 47,1253
+#define V_TF1 48,1280
+#define V_TF2 49,1307
+static struct reg_map reg_map53,1358
+struct v_cstate v_cstate93,2317
+#	define V_COOKIE	94,2335
+#define V_MAXARGS 105,2515
+#define __BASE_INT_TEMPS 107,2588
+#	define TEMPI 111,2718
+#	define TEMPI 114,2785
+#define N_VARS	117,2834
+#define NFP_VARS 118,2888
+#define VARI 120,2953
+#define TEMPF 121,3031
+#define VARF 122,3084
+
+sslittle-sstrix-config.h,617
+#define __SIMPLE_SCALAR_H__2,28
+#define __SIMPLE_SCALAR__5,83
+#define V_TI0	99,4243
+#define V_TI1	100,4268
+#define V_TI2	101,4293
+#define V_TI3	102,4318
+#define V_TI4	103,4343
+#define V_TI5	104,4368
+#define V_TF0 106,4394
+#define V_TF1 107,4421
+#define V_TF2 108,4448
+static struct reg_map reg_map112,4499
+struct v_cstate v_cstate152,5458
+#	define V_COOKIE	153,5476
+#define V_MAXARGS 164,5656
+#define __BASE_INT_TEMPS 166,5729
+#	define TEMPI 170,5859
+#	define TEMPI 173,5926
+#define N_VARS	176,5975
+#define NFP_VARS 177,6029
+#define VARI 179,6094
+#define TEMPF 180,6172
+#define VARF 181,6225
+
+vcode-internal.h,368
+#define __VCODE_INTERNAL_H__2,29
+#define __VCODE_INTERNAL__ 3,58
+#	define assert_active(assert_active7,150
+#	define fatal(fatal8,184
+#	define assert_active(assert_active10,216
+#	define fatal(fatal14,401
+struct v_arg v_arg32,851
+typedef v_code* W;W47,1351
+typedef W (*nft)nft48,1370
+#define v_roundup(v_roundup115,3768
+#define v_type(v_type116,3835
+
+vcode-portable-insts.h,113
+#define _VCODE_PORTABLE_INSTS_H_2,33
+#	define v_aldui 23,612
+#	define v_aldpi 26,660
+#	define v_aldli 29,708
+
+vcode.h,1612
+#define __VCODE_H__2,20
+#define __fast__4,41
+#       define inline8,169
+#define V_R(V_R20,378
+#define V_REG(V_REG22,466
+	} v_reg_type;v_reg_type104,2792
+	typedef v_reg_type v_reg_t;v_reg_t105,2807
+#	define _vrrp(_vrrp108,2873
+#	define _vrr(_vrr110,2930
+#	define _vri(_vri112,2975
+	typedef unsigned v_reg_type;v_reg_type118,3059
+	typedef v_reg_type v_reg_t;v_reg_t119,3089
+#	define _vrrp(_vrrp121,3154
+#	define _vrr(_vrr123,3207
+#	define _vri(_vri125,3246
+#	define v_reg(v_reg126,3267
+} v_carg;v_carg147,3748
+union v_types v_types150,3782
+	typedef struct { unsigned short label; } v_label_type;v_label_type172,4144
+	typedef v_label_type v_label_t;v_label_t173,4200
+#	define _vlrp(_vlrp176,4267
+#	define _vlr(_vlr178,4323
+	typedef unsigned short v_label_type;v_label_type183,4394
+	typedef v_label_type v_label_t;v_label_t184,4432
+#	define _vlrp(_vlrp186,4498
+#	define _vlr(_vlr188,4548
+typedef struct { unsigned l; unsigned h; } v_code;v_code200,4869
+typedef unsigned v_code;v_code202,4926
+typedef void (*v_vptr)v_vptr204,4986
+typedef char (*v_cptr)v_cptr205,5021
+typedef unsigned char (*v_ucptr)v_ucptr206,5056
+typedef short (*v_sptr)v_sptr207,5101
+typedef unsigned short (*v_usptr)v_usptr208,5137
+typedef int (*v_iptr)v_iptr209,5183
+typedef unsigned (*v_uptr)v_uptr210,5217
+typedef long	(*v_lptr)v_lptr211,5256
+typedef unsigned long (*v_ulptr)v_ulptr212,5291
+typedef void *(*v_pptr)v_pptr213,5336
+typedef float (*v_fptr)v_fptr214,5372
+typedef double (*v_dptr)v_dptr215,5408
+union v_fp v_fp222,5530
+#define v_is_fp(v_is_fp537,15454

@@ -1,0 +1,232 @@
+i_setc(il%0,%1);
+i_movc(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setc(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setuc(il%0,%1);
+i_movuc(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setuc(__DRLP__ %3,%1);
+comment(end forest);
+
+i_sets(il%0,%1);
+i_movs(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_sets(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setus(il%0,%1);
+i_movus(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setus(__DRLP__ %3,%1);
+comment(end forest);
+
+i_seti(il%0,%1);
+i_movi(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_seti(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setu(il%0,%1);
+i_movu(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setu(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setl(il%0,%1);
+i_movl(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setl(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setul(il%0,%1);
+i_movul(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setul(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setp(il%0,%1);
+i_movp(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setp(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setf(il%0,%1);
+i_movf(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setf(__DRLP__ %3,%1);
+comment(end forest);
+
+i_setd(il%0,%1);
+i_movd(__DRLP__ %3,il%0);
+comment(end forest);
+=
+i_setd(__DRLP__ %3,%1);
+comment(end forest);
+
+i_divi(%0,%1,%2);
+i_movi(__DRLP__ %1,%0);
+=
+i_divi(%1,%1,%2);
+
+i_divu(%0,%1,%2);
+i_movu(__DRLP__ %1,%0);
+=
+i_divu(%1,%1,%2);
+
+i_divl(%0,%1,%2);
+i_movl(__DRLP__ %1,%0);
+=
+i_divl(%1,%1,%2);
+
+i_divul(%0,%1,%2);
+i_movul(__DRLP__ %1,%0);
+=
+i_divul(%1,%1,%2);
+
+i_divf(%0,%1,%2);
+i_movf(__DRLP__ %1,%0);
+=
+i_divf(%1,%1,%2);
+
+i_divd(%0,%1,%2);
+i_movd(__DRLP__ %1,%0);
+=
+i_divd(%1,%1,%2);
+
+comment(begin forest);
+i_movd(%0,_%1);
+i_muld(_%1,%0,%0);
+comment(end forest);
+=
+i_muld(_%1,_%1,_%1);
+
+comment(begin forest);
+v_getreg(&%0,%1,%5);
+if (_tc_stackp(_%2)) {
+  v_ld%3(%0,v_lp,_tc_offset(_%2));
+} else {
+  v_mov%4(%0,_tc_reg(_%2));
+}
+v_putreg(%0,%1);
+if (_tc_stackp(_%6)) {
+  v_st%3(%0,v_lp,_tc_offset(_%6));
+} else {
+  v_mov%4(_tc_reg(_%6), %0);
+}
+comment(end forest);
+=
+if (_tc_stackp(_%2)) {
+  v_getreg(&%0,%1,%5);
+  v_ld%3(%0,v_lp,_tc_offset(_%2));
+  v_putreg(%0,%1);
+} else {
+  %0 = _tc_reg(_%2);
+}
+if (_tc_stackp(_%6)) {
+  v_st%3(%0,v_lp,_tc_offset(_%6));
+} else {
+  v_mov%4(_tc_reg(_%6), %0);
+}
+
+comment(begin forest);
+v_getreg(&%0,%1,%2);
+if (_tc_stackp(_%3)) {
+  v_ld%4(%0,v_lp,_tc_offset(_%3));
+} else {
+  v_mov%5(%0,_tc_reg(_%3));
+}
+v_putreg(%0,%1);
+v_ret%5(%0);
+comment(end forest);
+=
+if (_tc_stackp(_%3)) {
+  v_getreg(&%0,%1,%2);
+  v_ld%4(%0,v_lp,_tc_offset(_%3));
+  v_putreg(%0,%1);
+} else {
+  %0 = _tc_reg(_%3);
+}
+v_ret%5(%0);
+
+comment(begin forest);
+v_getreg(&%0,%1,%2);
+if (_tc_stackp(_%3)) {
+  v_ld%4(%0,v_lp,_tc_offset(_%3));
+} else {
+  v_mov%5(%0,_tc_reg(_%3));
+}
+v_%6(%0,%0,%0);
+v_putreg(%0,%1);
+if (_tc_stackp(_%3)) {
+  v_st%4(%0,v_lp,_tc_offset(_%3));
+} else {
+  v_mov%5(_tc_reg(_%3), %0);
+}
+comment(end forest);
+=
+if (_tc_stackp(_%3)) {
+  v_getreg(&%0,%1,%2);
+  v_ld%4(%0,v_lp,_tc_offset(_%3));
+  v_putreg(%0,%1);
+} else {
+  %0 = _tc_reg(_%3);
+}
+v_%6(%0,%0,%0);
+if (_tc_stackp(_%3)) {
+  v_st%4(%0,v_lp,_tc_offset(_%3));
+}
+
+comment(begin forest);
+v_getreg(&%0,%1,%2);
+if (_tc_stackp(_%3)) {
+  v_ld%5(%0,v_lp,_tc_offset(_%3));
+} else {
+  v_mov%6(%0,_tc_reg(_%3));
+}
+v_getreg(&%7,%1,%2);
+if (_tc_stackp(_%4)) {
+  v_ld%5(%7,v_lp,_tc_offset(_%4));
+} else {
+  v_mov%6(%7,_tc_reg(_%4));
+}
+v_putreg(%7,%1);
+v_%8(%0,%0,%7);
+v_putreg(%0,%1);
+if (_tc_stackp(_%3)) {
+  v_st%5(%0,v_lp,_tc_offset(_%3));
+} else {
+  v_mov%6(_tc_reg(_%3), %0);
+}
+comment(end forest);
+=
+v_getreg(&%0,%1,%2);
+if (_tc_stackp(_%3)) {
+  v_ld%5(%0,v_lp,_tc_offset(_%3));
+} else {
+  v_putreg(%0,%1);
+  %0 = _tc_reg(_%3);
+}
+if (_tc_stackp(_%4)) {
+  v_getreg(&%7,%1,%2);
+  v_ld%5(%7,v_lp,_tc_offset(_%4));
+  v_putreg(%7,%1);
+} else {
+  %7 = _tc_reg(_%4);
+}
+v_%8(%0,%0,%7);
+if (_tc_stackp(_%3)) {
+  v_putreg(%0,%1);
+  v_st%5(%0,v_lp,_tc_offset(_%3));
+}

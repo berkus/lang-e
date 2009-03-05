@@ -1,0 +1,113 @@
+#############################################################################
+# Hand-written vcode installation script.   Will compile and test vcode.
+#
+# usage: 
+#	perl configure
+# 
+
+$machine = $mach = shift(ARGV);
+$mach = "mips" if($mach eq "mips-ultrix");
+$mach = "sgi" if($mach eq "mips-sgi");
+
+while($mach ne "mips" && $mach ne "sgi" && $mach ne "sunos" && $mach ne "alpha" && $mach ne "solaris") {
+	print "Please enter the machine type to configure vcode for.\n" unless($msg++); 
+	print "<$mach> is not a valid machine name\n" if($failure++);
+
+	print "Valid machine names are [mips-ultrix|mips-sgi|sunos|solaris|alpha]: ";
+	$mach = <STDIN>;
+	chop $mach;
+	$machine = $mach;
+	$mach = "mips" if($mach eq "mips-ultrix");
+	$mach = "sgi" if($mach eq "mips-sgi");
+}
+
+print<<EOF;
+	Building vcode for <$machine>.
+
+	The default makefile configuration will compile with debugging macros
+	enabled.  This setup will make vcode safer to use, but will also make
+	it slower and larger.  To indulge your speed fetish uncomment the 
+	-DNDEBUG and -D__NDEBUG__ flags in ./vcode-src/$machine-makefile.
+
+EOF
+
+# files are named sparc-*
+$mach = ($mach eq "sunos") ? "sparc" : $mach;
+
+if($mach eq "solaris") {
+print<<EOF;
+
+	I have tested vcode mainly on SunOS.  vcode may not work on 
+	Solaris machines that use dynamic linking.  If you run into
+	problems, please email me (engler\@lcs.mit.edu).
+
+EOF
+}
+
+if($mach eq "sgi") {
+print<<EOF;
+
+	We need GNU M4 to build instruction macros.  Hopefully that
+	is what you have.
+
+EOF
+}
+
+
+chdir("vcode-src");
+&run_sys("Copying config files", "cp $mach-config.h vcode-config.h; cp $mach-makefile makefile");
+
+&run_sys("Deleting old state", "make clean");
+&run_sys("Making vcode", "make");
+&run_sys("Making dependencies.", "make depend");
+&run_sys("Remaking after depend", "make");
+
+print "Done making vcode; running regression tests\n";
+chdir("../tests");
+&run_sys("Making regression suite.", "make");
+
+print "\nDone with regression tests; trying the example programs\n";
+
+chdir("../examples/calc");
+&run_sys("Testing calc.", "make");
+
+chdir("../tutorial");
+&run_sys("Testing tutorial programs.", "make");
+
+chdir("../scale");
+&run_sys("Testing matrix scaling.", "make");
+
+chdir("../executable-data-structures");
+&run_sys("Testing executable data structures.", "make");
+
+chdir("../marshal");
+&run_sys("Testing marshalling/unmarshaling code.", "make");
+
+chdir("../memcpy");
+&run_sys("Testing memcpy code.", "make");
+
+# chdir("../strcmp");
+# &run_sys("Testing strcmp code.", "make");
+
+print<<EOF;
+
+	vcode built with no errors.  It's header files and library are in
+	./vcode-src.  Sample makefiles (and programs) showing how to use
+	vcode are in ./examples.  Documentation (the original pldi paper
+	and a new vcode tutorial) are in ./doc.
+
+	Happy DCGing...
+
+EOF
+
+# Run & print cmds's output to screen (there has got to be a better way...)
+sub run_sys {
+	local($msg, $cmd) = @_;
+
+	print "\n$msg\n";
+	open(MAKE, "$cmd |") || die "Couldn't run <$cmd>: $!\n";
+	while(<MAKE>) { print; } 
+	close(MAKE);
+	$? == 0 || die "<$cmd> failed.  Status = $?\n";
+}
+

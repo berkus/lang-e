@@ -1,0 +1,98 @@
+; $Id: op.def,v 1.2 1998/05/06 19:03:34 maxp Exp $
+; This file defines the "icode" instruction set.  It implements the vcode
+; instruction set defined in the vcode tutorial for release 7, with these
+; exceptions:
+;    - cvA2B opcodes are extended to cover the full set in vcode-macros.h
+;    - {mov,set}[cs] instructions are introduced to correctly handle
+;      loads and stores of 1- and 2-word data (i.e. ASGNC(a,b) *needs* to
+;      be movc (as opposed to movi) when a is on the stack).
+;
+;(format (op1 op2 (op3)))
+;(op (v   c    uc   s    us   i    u    l    ul   p    f    d))
+;
+
+
+; nop has opcode 0
+(misc nop)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; standard binary ops
+(format f_bop (rd rs1 rs2))
+(add                          (i   u    l    ul   p    (f   d)))
+(sub                          (i   u    l    ul   p    (f   d)))
+(mul                          (i   u    l    ul        (f   d)))
+(div                          (i   u    l    ul        (f   d)))
+(mod                          (i   u    l    ul))
+(and                          (i   u    l    ul))
+(or                           (i   u    l    ul))
+(xor                          (i   u    l    ul))
+(lsh                          (i   u    l    ul))
+(rsh                          (i   u    l    ul))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; standard unary ops
+(format f_uop (rd rs))
+(com                          ((i  u    l    ul)))
+(not                          ((i  u    l    ul)))
+(mov      ((c  uc   s    us   i    u    l    ul   p    f    d)))
+(neg                          ((i  u    l    ul        f    d)))
+(cvc2                         (i   u    l    ul))
+(cvs2                         (i   u    l    ul))
+(cvus2                        (i   u    l    ul))
+(cvi2     (c        s              u    l    ul        (f   d)))
+(cvu2     (c        s         i         l    ul        (f   d)))
+(cvl2     (c        s         i    u         ul        (f   d)))
+(cvul2    (c        s         i    u    l         p    (f   d)))
+(cvp2                                        (ul))
+(cvf2                         ((i  u    l    ul             d)))
+(cvd2                         ((i  u    l    ul        f)))
+(formati f_set (rd imm))
+(set      (c   uc   s    us   i    u    l    ul   p    f    d))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; mem ops
+(format f_mopr (rd rs offset))
+(ld       (c   uc   s    us   i    u    l    ul   p    f    d))
+(format f_mopw (rd rs offset))
+(st       (c   uc   s    us   i    u    l    ul   p    f    d))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; return
+(format f_ret (val))
+(ret ((v)                     i    u    l    ul   p    (f   d)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; jump
+(format f_jmp (dest))
+(j                                                (p))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; branches
+(format f_br (rs1 rs2 label))
+(blt                          (i   u    l    ul   p    (f   d)))
+(ble                          (i   u    l    ul   p    (f   d)))
+(bgt                          (i   u    l    ul   p    (f   d)))
+(bge                          (i   u    l    ul   p    (f   d)))
+(beq                          (i   u    l    ul   p    (f   d)))
+(bne                          (i   u    l    ul   p    (f   d)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; call
+(format f_call (result callee))
+(call (v                      i    u    l    ul   p    f    d))
+
+; arg
+(format f_arg (arg))
+(arg                          ((i  u    l    ul   p    f    d)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; load effective address
+(formati f_lea (dst src))
+(lea                          (i   u              p    f    d))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; misc
+(misc lbl)
+(misc self)
+(misc refmul)
+(misc refdiv)

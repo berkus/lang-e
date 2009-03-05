@@ -1,0 +1,14 @@
++ Modify calls so that they move their result into a register.
+
++ Make regress cover the instruction set.
+
++ Large activation records are not supported.
+
++ optimize absolute jumps to targets that immediately follow (is actually
+  fairly easy).
+
++ make v_label destructive so that we can reuse linkage space.
+  simple way: check if label is eqal to genlabel-1.  this will take
+  care of if-stmts/loops.   this requires incremental linking,
+  which forces us to make sure code is not moved (unless jumps are 
+  relative, which they should be).

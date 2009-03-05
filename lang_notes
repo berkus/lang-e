@@ -1,0 +1,60 @@
+As for the language, I've been messing around some ideas, and what I think is crucial:
+
+ * Support for AOP (aspect-oriented programming) from the grounds up.
+ * Support for DBC (design-by-contract) from the grounds up - see Eiffel as an example.
+ * Simple syntax (this is probably very C-biased, because I think plain C syntax is quite nice, but..)
+
+Something along the lines of:
+
+start_thread(t: @thread): int
+invariant t != 0
+{
+    rc: int = 0
+    rc |= t.init_stack()
+    rc |= t.init_data()
+    return rc
+}
+
+// Add debug printouts to start of every function
+aspect print_debug, *
+
+
+This looks like a wild Pascalism, but I think that declaring functions as func(a,b,c,d: int): int is somewhat nicer than int func(int a, int b, int c, int d); This should simplify parsing a little bit, as well.
+
+Support for generics (aka c++ templates) is a must have, so you get strong type checking and don't duplicate generic code around. Say no to void* arrays, trees, etc  I'm in favor of a more Java-like approach here: let generic types have some sort of interface specification (DBC, remember).
+
+Syntactically it looks like
+
+class List [T: Hashable]
+{
+}
+
+
+Here we use T as generic type that implements Hashable interface. Naturally, this extends to a more complex example:
+
+class ImageProcessor [T1: ImageProducer, ImageConsumer; T2: ImageFilter]
+{
+    public apply(filter: T2): void
+}
+
+
+Here we declare class ImageProcessor which uses two generic types: T1, which should be able to both produce and consume images and T2, which performs the duties of a filter (forgive my silly examples, coming from the top of my head).
+
+You can produce specialized code for some generics, this is important to have optimized or event machine-dependent code.
+
+class JmpGaussProcessor : ImageProcessor[JpgImage,GaussFilter]
+{
+    public apply(filter: GaussFilter): void
+    {
+        // your highly specialized code
+    }
+}
+
+
+For systems programming language distinction between a (stack) object and a pointer is probably crucial. Possibility to implement reference counted shared pointers and easy implementation of atomic operations and syncronization primitives is also crucial. Best if they are implemented into the language itself. Nice to have some syntax sugar like the with(obj) operator.
+
+Support for sane inline assembly syntax would be nice. Look at Ian Lance Taylor emails in gcc ml.
+
+Separate class interface from class implementation. This is where C++ messes up big time. Of course, programmers learned to cover this with pimpl (Private *d;) but that means even more memory allocations and less efficiency. If C++ supported proper separation of interface and implementation from the beginning, it would have been a much better language.
+
+Java, otoh, overdid it, and looking at Java's interfaces and classes diagrams is a 48000x32000 pixels big pain in the @$$.

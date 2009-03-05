@@ -1,0 +1,21 @@
+VPATH	= 	@srcdir@
+CC	= 	@CC@
+CFLAGS	=	-g -O
+YACC	=	@YACC@
+YFLAGS	=
+OBJS	=	lburg.o gram.o
+INSTALL =	@INSTALL@
+
+install: lburg
+	$(INSTALL) lburg$(EXESFX) $(bindir)
+
+lburg:		$(OBJS)
+		$(CC) -o lburg $(OBJS)
+
+$(OBJS):	lburg.h
+
+clean:
+		rm -f *.o core
+
+dist-clean:	clean
+		rm -f y.tab.c gram.c lburg

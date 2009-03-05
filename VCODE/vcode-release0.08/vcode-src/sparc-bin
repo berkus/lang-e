@@ -1,0 +1,289 @@
+#include <assert.h>
+
+/*   various defines, synthetic instructions and complicated operations */
+#define HDR(hdr) ((hdr) << 30)
+#define RD(dst)  ((dst) << 25)
+#define OP3(op)  ((op)  << 19)
+#define RS1(src) ((src) << 14)
+#define IM(im)   ((im)  << 13)
+#define ASI(asi) ((asi) << 5)
+#define RS2(src) (src)
+#define ANNUL(a) ((a) << 29)
+#define COND(cond) ((cond) << 25)
+#define OPF(x) ASI(x)
+#define DISP30(disp) ((disp) >> 2)
+
+#define lower(disp) ((~0 >> 11) & disp)
+#define DISP22(disp)  lower(SIGN_EXT22(disp))
+
+#define SIMM13(im) (SIGN_EXT13(im))
+#define SIGN_EXT13(a)   ((a)&0x1000)?0xffffe000^(a):(a)
+#define SIGN_EXT22(a)   ((a)&0x200000)?0xffc00000^(a):(a)
+#define diff(x,y) ((unsigned)(x) - (unsigned)(y))
+
+/* look at a way of specing these */
+#define FORMAT1(v_ip, disp30) (*v_ip++ = (HDR(1) | DISP30(disp30)))
+
+#define FORMAT3F(p, hdr, src1, src2, op3, opf) 	\
+	(*p++ = (HDR(hdr) | OP3(op3) | RS1(src1) | OPF(opf) | RS2(src2)))
+
+#define FORMAT3F2(p, hdr, dst, src1, op3, opf) 	\
+	(*p++ = (HDR(hdr) | RD(dst) | OP3(op3) | OPF(opf) | RS2(src1)))
+
+#define FORMAT3F3(p, hdr, dst, src1, src2, op3, opf) 	\
+	(*p++ = (HDR(hdr) | RD(dst) | OP3(op3) | RS1(src1) | OPF(opf) | RS2(src2)))
+
+#define NOP (1 << 24)
+
+#define FORMAT3A_NCK(p, hdr, dst, src1, simm13, op3)\
+	(*p++ = (HDR(hdr) | RD(dst) | OP3(op3) | RS1(src1) | IM(1) | SIMM13(simm13)))
+
+#define FORMAT3A(p, hdr, dst, src1, simm13, op3) do {\
+	if(SIMM13_P(simm13))					\
+		*p++ = (HDR(hdr) | RD(dst) | OP3(op3) | RS1(src1) | IM(1) | SIMM13(simm13));\
+	else {							\
+		set(_g1, simm13);				\
+		FORMAT3B(p, hdr, dst, src1, _g1, op3);		\
+	}							\
+} while(0)
+		
+
+#define FORMAT3B(p, hdr, dst, src1, src2, op3) 	\
+	(*p++ = (HDR(hdr) | RD(dst) | OP3(op3) | RS1(src1) | IM(0) | RS2(src2)))
+
+/* a is the set=1 if annul bit is needed */
+#define FORMAT2A(p, hdr, a, op, cond, disp)  \
+	(*p++ = (HDR(hdr) | ANNUL(a) | COND(cond) | (op << 22) | DISP22(disp)))
+
+#define FORMAT2B(p, hdr, dst, disp, op) \
+	(*p++ = (HDR(hdr) | RD(dst) | ((op) << 22) | DISP22(disp)))
+
+
+/* move float register to int register */
+#define movf2i(dst, src) do {			\
+        stf( src, v_lpr, v_carea);      \
+        ld( dst, v_lpr, v_carea);       \
+} while(0)
+
+/* move double register to int registers */
+#define movd2i(dst, src) do {			\
+        stdf( src, v_lpr, v_carea);      	\
+	if(dst % 2 == 0)			\
+        	ldd(dst, v_lpr, v_carea);       \
+	else {					\
+		ld(dst, v_lpr, v_carea);	\
+		ld(dst+1, v_lpr, v_carea+4);	\
+	}					\
+} while(0)
+
+/* move int to float register */
+#define movi2f(dst, src) do {			\
+        st( src, v_lpr, v_carea);       	\
+        ldf(dst, v_lpr, v_carea);      		\
+} while(0)
+
+/* move int to double register */
+#define movi2d(dst, src) do {			\
+        if(src % 2 == 0) 			\
+		std(src, v_lpr, v_carea);      	\
+	else {					\
+		st(src, v_lpr, v_carea);      	\
+		st(src+1, v_lpr, v_carea+4);   \
+	}					\
+        lddf(dst, v_lpr, v_carea);       	\
+} while(0)
+
+/* synthesized instructions */
+#define jmp(r) { jmpl(_g0, r, 0); }
+#define jmpi(addr) { jmpl(_g0, ra, (unsigned)addr); }
+#define ret() jmpl(_g0, _i7, 8)
+#define SIMM13_P(im) (((int)im) < 4096 && ((int)im) >= -4096)
+
+/* upper 22 bits */
+#define hi(x) ((x) >> 10)
+/* lower 10 bits */
+#define lo(x) ((x) & ((1 << 11) - 1))
+
+/* taken right from sparc arch p. 85 -- last or should do lower 10 bits */
+#define set(r, addr) 					\
+do { 							\
+	int u = (int)addr;				\
+	if(SIMM13_P(u)) nckori(r,_g0,u); 			\
+	else if(!(u & 0x1fff)) 				\
+		sethi(r, hi(u));			\
+	else {						\
+		sethi(r,hi(u)); 			\
+		nckori(r,r,lo(u));			\
+	}						\
+} while(0)
+
+#define fmovd(dst, src) do { 				\
+	fmovs(dst,src);					\
+	fmovs(dst+1,src+1);				\
+} while(0)
+
+/* p 143 of sparc arch */
+#define fnegd(dst, src)  do {				\
+	if(src == dst) 					\
+		fnegs(dst, src);			\
+	else {						\
+		fmovd(dst, src);			\
+		fnegs(dst, dst);			\
+	}						\
+} while(0)
+#define fabsd(dst, src)  do {				\
+	if(src == dst) 					\
+		fabss(dst, src);				\
+	else {						\
+		fmovd(dst, src);			\
+		fabss(dst, dst);				\
+	}						\
+} while(0)
+
+/* this shouldn't ever cause any problems */
+#define mov(dst,src)	do { if(dst != src) or(dst, _g0, src); } while(0)
+#define call_reg(r) jmpl(_o7, r, 0)
+
+/* synthesized using subcc (p.109) */
+#define cmp(src1, src2) subcc(0, src1, src2)
+#define cmpi(src1, src2) subcci(0, src1, src2)
+#define not(dst, src) 	do { subcc(_g0, _g0, src); subxi(dst, _g0, -1); } while(0)
+#define neg(dst, src) 	sub(dst, _g0, src)
+#define com(dst, src)	xnor(dst, src, _g0)
+
+#define save(framesize) do {				\
+	if(SIMM13_P(framesize)) {				\
+		savei(framesize);			\
+	} else {					\
+		set(_g1, framesize);			\
+		savev(_g1);				\
+	}						\
+} while(0)
+
+/* this might bite us later */
+#define fmovs(dst, src) do { 			\
+	if(dst != src)				\
+		nfmovs(dst, src);		\
+} while(0)
+
+%%
+/* these will *not* do reg+reg -- will have to add it later */
+(dst, src1, simm13) FORMAT3A(v_ip, 3, dst, src1, simm13, @bin); {
+	ldsb   ldsh   ldub   lduh   ld     ldd    ldf  
+	001001 001010 000001 000010 000000 000011 100000 
+	lddf   stb    sth    st     std    stf    stdf 
+	100011 000101 000110 000100 000111 100100 100111
+}
+(dst, src1, src2) FORMAT3B(v_ip, 3, dst, src1, src2, @bin); {
+	ldsbr   ldshr   ldubr   lduhr   ldr     lddr    ldfr  
+	001001 001010 000001 000010 000000 000011 100000 
+	lddfr   stbr    sthr    str     stdr    stfr    stdfr 
+	100011 000101 000110 000100 000111 100100 100111
+}
+(dst, src1, simm13) FORMAT3A(v_ip, 2, dst, src1, simm13, @bin); { 
+	jmpl 111000 
+}
+/* hard coded save */
+(framesize) FORMAT3A(v_ip, 2, _sp, _sp, framesize, @bin); { 
+	savei 111100  
+} 
+(r) FORMAT3B(v_ip, 2, _sp, _sp, r, @bin); { 
+	savev 111100  
+} 
+/* arithmetic */
+(dst, src1, src2) FORMAT3B(v_ip, 2, dst, src1, src2, @bin); {
+	and    andn   or     orn    xor    xnor   sll  	  
+	000001 000101 000010 000110 000011 000111 100101  
+	srl    sra    add    sub    subcc  
+	100110 100111 000000 000100 010100 
+	udiv   sdiv   umul   smul
+	001110 001111 001010 001011
+}
+/* immediate arith -- need to ensure imm will fit */
+(dst, src1, simm13) FORMAT3A(v_ip, 2, dst, src1, simm13, @bin); {
+	andi   andni  ori    orni   xori   xnori  slli  
+	000001 000101 000010 000110 000011 000111 100101 
+	srli   srai   addi   subi   subcci subxi
+	100110 100111 000000 000100 010100 001100
+	udivi   sdivi   umuli   smuli
+	001110 001111 001010 001011
+}
+(dst, src1, simm13) FORMAT3A_NCK(v_ip, 2, dst, src1, simm13, @bin); { 
+	nckori 
+	000010
+}
+
+/* trivial restore */
+()  FORMAT3B(v_ip, 2, _g0, _g0, _g0, @bin); { 
+	restore 111101 
+}
+
+/* conditional */
+(src1, src2, name)  cmp(src1, src2);				\
+		FORMAT2A(v_ip, 0, 0, 2, @bin, 0); 		\
+		/* mark *last* instruction */			\
+		v_bmark(&v_ip[-1], name); 			\
+		nop(); 	{
+	be    bne  bg   bgu  ble  bge  bl   bleu bn   
+	0001  1001 1010 1100 0010 1011 0011 0100 0000
+}
+(src1, simm13, name)  cmpi(src1, simm13);			\
+		FORMAT2A(v_ip, 0, 0, 2, @bin, 0); 		\
+		/* mark *last* instruction */			\
+		v_bmark(&v_ip[-1], name); 			\
+		nop(); 	{
+	bei   bnei bgi  bgui blei bgei bli  bleui bni   
+	0001  1001 1010 1100 0010 1011 0011 0100  0000
+}
+
+/* disp is zero (unresolved) - cmp is either fcmpes or fcmped */
+(src1, src2, name, cmp) 	cmp(src1, src2); nop();\
+		v_bmark(v_ip, name);	\
+		FORMAT2A(v_ip, 0, 0, 6, @bin, 0); nop(); {
+	0110 0100 0010 0001 1001 0001 1011 1101
+	fbg  fbl  fblf fbne fbe  fbne fbge fble 
+}
+/* disp is zero (unresolved) - cmp is either fcmpes or fcmped */
+(src1, src2, name) 	fcmpes(src1, src2); nop();\
+		v_bmark(v_ip, name);	\
+		FORMAT2A(v_ip, 0, 0, 6, @bin, 0); nop(); {
+	0110  0100  0010  0001  1001  0001  1011  1101
+	fbgs  fbls  fblfs fbnes fbes  fbnes fbges fbles 
+}
+/* disp is zero (unresolved) - cmp is either fcmpes or fcmped */
+(src1, src2, name) 	fcmped(src1, src2); nop();\
+		v_bmark(v_ip, name);	\
+		FORMAT2A(v_ip, 0, 0, 6, @bin, 0); nop(); {
+	0110  0100  0010  0001  1001  0001  1011  1101
+	fbgd  fbld  fblfd fbned fbed  fbned fbged fbled 
+}
+/* couldn't test these */
+(src1, src2) FORMAT3F(v_ip, 2, src1, src2, 0x35, @bin); {
+	fcmpes 	  fcmped 
+	001010001 001010010
+}
+/* conversions */
+(dst, src1) FORMAT3F2(v_ip, 2, dst, src1, 0x34, @bin); {
+	nfmovs     fnegs     fitos     fitod     fstoi     fdtoi     fstod     fdtos 
+	000000001 000000101 011000100 011001000 011010001 011010010 011001001 011000110
+}
+(dst, src1) FORMAT3F2(v_ip, 2, dst, src1, 0x34, @bin); {
+	fabss		fsqrts		fsqrtd
+	000001001	000101001	000101010
+}
+/* fbinary */
+(dst, src1, src2) FORMAT3F3(v_ip, 2, dst, src1, src2, 0x34, @bin); {
+	fadds     faddd     fsubs     fsubd     fmuls     fmuld     fdivs     fdivd 
+	001000001 001000010 001000101 001000110 001001001 001001010 001001101 001001110
+}
+/* simple call */
+(addr) unsigned dis = diff(addr,v_ip); FORMAT1(v_ip, dis); nop(); {
+	call 01  
+}
+/* set */
+(dst, imm22) FORMAT2B(v_ip, 0, dst, imm22, 0x4); { 
+	sethi 000100 
+}
+()  ((*v_ip++) = NOP); {
+	nop   000000
+}

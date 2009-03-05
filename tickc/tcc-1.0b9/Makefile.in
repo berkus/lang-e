@@ -1,0 +1,225 @@
+.PHONY: all current install clean dist-clean tilde-clean
+
+TCC	=	1		# Tell relevant modules they are part of tcc
+T_CPU	=	@target_cpu@
+T_OSV	=	@target_os@
+T_OS	=	$(strip $(patsubst ultrix%,ultrix,\
+		$(patsubst sunos%,sunos,$(patsubst solaris%,solaris,\
+		$(patsubst linux%,linux,$(patsubst openbsd%,openbsd,\
+		$(T_OSV)))))))
+
+ifeq (86,$(findstring 86,$(T_CPU)))
+# x86
+T_CPU	=	i386
+srcs	=	lburg sup bpo vcode-x86 icode rts rcc copt tcc
+EXESFX	=
+VHDRS	=	vcode.h x86-codegen.h
+else
+# other architectures
+srcs	=	lburg sup bpo vcode icode rts rcc copt tcc
+EXESFX	=
+ifeq (solaris,$(T_OS))
+VHDRS	=	binary.h cachectl.h demand.h vcode-config.h vcode-internal.h \
+		vcode-macros.h vcode-portable-insts.h vcode.h \
+		sparc-sunos-config.h
+else
+VHDRS	=	binary.h cachectl.h demand.h vcode-config.h vcode-internal.h \
+		vcode-macros.h vcode-portable-insts.h vcode.h
+endif
+endif
+VLIB	=	vcode.lib.a
+
+# Set 'MODE' to 'optimize' to turn on full opts when compiling icode and in 
+# other places where full opts are expensive
+MODE	=	debug
+
+cpp	=	yes
+cc2	=	yes
+
+prefix	=	@prefix@
+srcdir	=	@srcdir@
+ifeq ($(srcdir),.)
+srcdir	=	$(prefix)
+endif
+builddir=	@prefix@/build
+exec_prefix =	@exec_prefix@
+bindir	=	@bindir@
+includedir =	@includedir@/$(T_CPU)/$(T_OS)
+libdir	=	@libdir@
+infodir =	@infodir@
+mandir	=	@mandir@
+
+PERL	=	@PERL@
+FIND	=	@FIND@
+XARGS	=	@XARGS@
+LN_S	=	@LN_S@
+RM	=	@RM@ -f
+MKDIR	=	@MKDIR@ -p
+LNDIR	=	@LNDIR@
+CC	=	@GCC@
+ifeq ($(T_OS),sstrix)
+# Simplesim configuration information
+# Simplesim home directory.  It should have subdirectories called
+#  "ss{big,little}-na-sstrix/{bin,include,lib}".
+SSDIR	=
+# Paths to simplesim versions of gcc, nm, ar, ranlib, as, and ld
+SSCC	=
+SSNM	=
+SSAR	=
+SSRANLIB=
+AS	=
+LD	=
+else
+AS	=	@AS@
+LD	=	@LD@
+endif
+
+d_prl	=	-D_TICKC_PRL=\"$(PERL)\"
+d_bin	=	-D_TICKC_BIN=\"$(bindir)\"
+d_lib	=	-D_TICKC_LIB=\"$(libdir)\"
+d_inc	=	-D_TICKC_INC=\"$(includedir)\"
+d_cpp	=	-D_TICKC_CPP=\"$(libdir)/cpp\"
+d_com	=	-D_TICKC_COM=\"$(libdir)/rcc\"
+d_cc2	=	-D_TICKC_CC2=\"$(libdir)/cc2\"
+d_as	=	-D_TICKC_AS=\"$(AS)\"
+d_ld	=	-D_TICKC_LD=\"$(LD)\"
+d_bbx	=	-D_TICKC_BBX=\"$(libdir)/bbexit.o\"
+xdefs	=	$(d_prl) $(d_bin) $(d_lib) $(d_inc) \
+		$(d_cpp) $(d_com) $(d_cc2) $(d_ld) $(d_as) $(d_bbx)
+
+export T_CPU T_OS
+export MODE
+export TCC
+export SSDIR SSCC SSNM SSAR SSRANLIB AS LD
+export srcdir bindir libdir includedir
+export xdefs
+
+MAKEFLAGS=	-e
+
+all: install
+
+install:
+	@if [ x$(T_OS) = xsstrix -a x$(AS) = x ]; then \
+		echo Please edit the Makefile where it says \
+			\`Simplesim configuration information\'. ; \
+		echo Then rerun make. ; \
+		exit; \
+	fi; \
+	root=`pwd`; notfound=0; \
+	for dir in $(builddir) $(bindir) $(libdir); do \
+		if [ ! -d $$dir ]; then \
+			echo \# $$dir not found ; \
+			notfound=1; \
+		fi; \
+	done; \
+	if [ $$notfound = 1 ]; then \
+		echo \# Please create these directories and rerun make. ; \
+		exit; \
+	fi; \
+	if [ ! -d $(includedir) ]; then \
+		echo \# Include dir \"$(includedir)\" not found:; \
+		echo \# Making link to \"$(srcdir)/include\"; \
+		$(MKDIR) $(includedir)/tickc; \
+		cd $(includedir)/../..; \
+		$(LNDIR) $(srcdir)/include; cd $$root; \
+	fi; \
+	if [ ! -d $(prefix)/tst ]; then \
+		echo \# Test dir not found: creating $(prefix)/tst; \
+		$(MKDIR) $(prefix)/tst; cd $(prefix)/tst; \
+		$(LNDIR) $(srcdir)/tst; cd $$root; \
+	fi; \
+	if [ x$(T_OS) = xsstrix ]; then ccom=$(SSCC); cname=sstrix; \
+	else ccom=$(CC); cname=system; fi; \
+	if [ $(cc2) = "yes" -a ! -f $(libdir)/cc2 ]; then \
+		echo \# INSTALLING cc2: creating link to $$cname gcc ; \
+		$(LN_S) $$ccom $(libdir)/cc2 ; \
+	fi; \
+	if [ $(cpp) = "yes" -a ! -f $(libdir)/cpp ]; then \
+		echo \# INSTALLING cpp: creating link to $$cname cpp ; \
+		cpp=`$$ccom -v 2>&1 | grep "Reading specs" | \
+			awk '{print $$NF}' | sed "s/specs/cpp/g"`; \
+		echo Found cpp: $$cpp; \
+		$(LN_S) $$cpp $(libdir)/cpp; \
+	fi; \
+	for p in $(srcs); do \
+		echo \#; \
+		echo \# BUILDING $$p for $(T_CPU)-$(T_OS); \
+		echo \#; \
+		if [ ! -d $(builddir)/$$p ]; then \
+			$(MKDIR) $(builddir)/$$p; \
+		fi; \
+		cd $(builddir)/$$p; \
+		if [ ! -f Makefile ]; then \
+			if [ $$p = "vcode" ]; then \
+				$(LN_S) $(srcdir)/src/$$p/* .; \
+				if [ -h bpp ]; then \
+					echo Creating bpp ...; \
+					$(RM) bpp; $(MKDIR) bpp; cd bpp; \
+					$(LN_S) $(srcdir)/src/$$p/bpp/* .; \
+					$(MAKE) bpp; cd ..; \
+					echo done; \
+				fi; \
+				if [ -h tests ]; then \
+					echo Creating tests ...; \
+					$(RM) tests; $(MKDIR) tests; cd tests;\
+					$(LN_S) $(srcdir)/src/$$p/tests/* .; \
+					cd ..; \
+					echo done; \
+				fi; \
+				$(LN_S) $(T_CPU)-$(T_OS)-makefile Makefile; \
+				$(LN_S) $(T_CPU)-$(T_OS)-config.h vcode-config.h; \
+			elif [ $$p = "vcode-x86" ]; then \
+				$(LN_S) $(srcdir)/src/$$p/* .; \
+			else \
+				$(srcdir)/src/$$p/configure \
+					--prefix=$(srcdir) \
+					--bindir=$(bindir) \
+					--libdir=$(libdir) \
+					--includedir=$(includedir); \
+			fi; \
+		fi; \
+		old=0; \
+		if [ x$(T_OS) = xsstrix ]; then \
+			if [ $$p = "sup"   -o $$p = "bpo" -o $$p = "vcode" \
+			  -o $$p = "icode" -o $$p = "rts" ]; then \
+				ccom=$(SSCC); \
+			else ccom=$(CC); fi; \
+		fi; \
+		if [ $$p = "vcode" -o $$p = "vcode-x86" ]; then \
+			$(MAKE) -q CC=$$ccom T_CPU=$(T_CPU) EXESFX=$(EXESFX); \
+			old=$$?; \
+		fi; \
+		$(MAKE) CC=$$ccom; \
+		if [ $$p = "vcode" -o $$p = "vcode-x86" ]; then \
+			if [ x$$old = x1 ]; then \
+				cp $(VLIB) $(libdir)/libvcode.a; \
+				cp $(VHDRS) $(includedir)/tickc; \
+			fi; \
+		fi; \
+		cd $$root; \
+		echo \# DONE; \
+		echo \ ;\
+	done;
+
+clean:
+	@for p in $(srcs); do \
+		if [ -d $(builddir)/$$p ]; then \
+			root=`pwd`; \
+			cd $(builddir)/$$p; \
+			$(MAKE) clean; \
+			cd $$root; \
+		fi; \
+	done;
+
+dist-clean:
+	@for p in $(srcs); do \
+		if [ -d $(builddir)/$$p ]; then \
+			root=`pwd`; \
+			cd $(builddir)/$$p; \
+			$(MAKE) dist-clean; \
+			$(RM) -r *; \
+		fi; \
+	done;
+
+tilde-clean:
+	@$(FIND) . -name "*~" | $(XARGS) $(RM)

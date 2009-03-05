@@ -1,0 +1,20 @@
+VPATH	= 	@srcdir@
+CC	= 	@CC@
+CFLAGS	=	-g -O
+OBJS	=	copt.o
+INSTALL =	@INSTALL@
+
+install: copt
+	$(INSTALL) -m 0755 copt $(libdir)
+	$(INSTALL) -m 0644 @srcdir@/rules.copt $(libdir)
+
+copt:		$(OBJS)
+		$(CC) -o copt $(OBJS)
+
+$(OBJS):	copt.c
+
+clean:
+		rm -f ~ *.o core
+
+dist-clean:	clean
+		rm -f copt

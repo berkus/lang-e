@@ -1,0 +1,51 @@
+This is the x86 port of VCODE. It is based on the interface as
+described in the April 28th 1996 doc/tutorial.ps that comes with Dawson's
+0.06 VCODE release. This version has passed the regression tests
+associated with the 0.06 release, with the exceptions listed in the
+bugs section below.
+
+Programs should include vcode.h and compile and link vcode.c.
+
+An x86 disassembler is now provided, which can either be used
+standalone or via v_dump.
+
+Do a 'make test' to run the regresion tests.
+Do a 'make time' to run a very simple benchmark.
+
+The source assumes that it is installed in a directory called vcode. 
+If this is not the case create a link from the source's parent to it
+and name the link vcode.
+
+WHAT'S NEW:
+
+version 0.5:
+-- removed all virtual register support
+-- better code generation for loads, stores, and strength reduced multiplies
+-- added support for incremental linking (v_begin_incremental and v_end_incremental)
+
+versions 0.1 - 0.4:
+-- get it working
+
+BUGS:
+ -- limited to using the 6 x86 general purpose registers and no more
+ -- v_ra is not defined. use v_getra to return a register containing
+    the return address and v_putreg it when done.
+ -- function calls require a free register to hold the return value
+ -- push_arg_reg only records that a register needs to be pushed. The
+    register is not actually pushed until a call to ccall is made.
+ -- fairly bad namespace pollution
+ -- v_jalp doesn't take a link register, but instead always uses the 
+    vcode pseudo register v_ra
+ -- floats and doubles are not supported
+ -- I'm not sure if v_zero is a real VCODE pseudo register or not. Currently,
+    it can only be used as the base register of loads and stores
+ -- v_save and v_restore are missing
+
+PERFORMANCE:
+
+simple benchmark -- time how long it takes to generate a hundred
+instruction procedure 100,000 times (the instruction is a store). On a
+200Mhz pention pro this took 2 seconds or roughly one instruction
+every 30 cycles.
+
+

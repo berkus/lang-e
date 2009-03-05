@@ -1,0 +1,101 @@
+#include <stdio.h>
+#include "bench2.h"
+
+typedef double (*dptr)(double);
+
+double pow(double base, int exp) {
+     int t, bit = 1;
+     double result = 1.0;
+
+     while (bit <= exp) {
+	  if (bit & exp)
+	       result *= base;
+	  bit = bit << 1;
+	  base *= base;
+     }
+     return result;
+}
+
+dptr mkpow(int exp) {
+     double vspec base = param(double,0);
+     switch (exp) {
+     case 0:
+	  return compile(`{ return 1.; },double);
+     case 1:
+	  return compile(`{ return @base; },double);
+     default:
+     {
+	  double vspec result = local( double);
+	  void cspec squares;
+	  int init = 0, bit = 2;
+
+	  if (1 & exp) {
+	       squares = `{ @result = @base; };
+	       init = 1;
+	  } else squares = `{};
+	  while (bit <= exp) {
+	       squares = `{ @squares; @base *= @base; };
+	       if (bit & exp) {
+		    if (init)
+			 squares = `{ @squares; @result *= @base; };
+		    else {
+			 squares = `{ @squares; @result = @base; };
+			 init = 1;
+		    }
+	       }
+	       bit = bit << 1;
+	  }
+	  return compile(`{ @squares; return @result; },double);
+     }
+     }
+}
+
+void main(int argc, char **argv) {
+     int i, j;
+     dptr f, f2;
+
+     doargs(argc,argv);
+     xnruns = (ndata-10+1)*nruns;
+     xncomp = (ndata-10+1)*ncomp;
+     xndata = ndata;
+     printf("## pow ##\n");
+     if (optDCG) {
+	  f2 = mkpow((ndata+10)/2);	/* Warm cache */
+	  SWINIT("compilation");
+	  SWON;
+	  for (j = 10; j <= ndata; j++) {
+	       for (i=0; i < ncomp; i++) {
+		    f = mkpow(j);
+		    decompile(f);
+	       }
+	  }
+	  SWOFF; SWDUMP;
+
+	  if (!f2) return;
+	  dump(f2);
+	  decompile(f2);
+
+	  SWINIT("run");
+	  for (j = 10; j <= ndata; j++) {
+	       f = mkpow(j);
+	       (*f)((double)2.);	/* Warm up cache */
+	       SWON;
+	       for (i = 0; i < nruns; i++)
+		    (*f)((double)2.);
+	       SWOFF;
+	       if (optVerbose)
+		    printf("** %e\n",(double)(*f)((double)2.));
+	       decompile(f);
+	  }
+	  SWDUMP;
+     } else {
+	  pow((double)2.,ndata); /* Warm up cache */
+	  SWINIT("run"); SWON;
+	  for (j = 10; j <= ndata; j++)
+	       for (i = 0; i < nruns; i++)
+		    pow((double)2.,j);
+	  SWOFF; SWDUMP;
+	  if (optVerbose)
+	       printf("** %e\n",(double)pow((double)2.,ndata));
+     }
+}

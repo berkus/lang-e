@@ -1,0 +1,7 @@
+x15.c:8: warning: unreachable code
+x15.c:8: reference to label `there' undefined in cspec
+x15.c:10: warning: unreachable code
+x15.c:8: reference to label `hi' undefined in cspec
+x15.c:16: argument to `decompile' must be a function pointer
+x15.c:18: argument to `decompile' must be a function pointer
+Finalizing C output.  Done.

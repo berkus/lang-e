@@ -1,0 +1,15 @@
+mov dword ptr [ebp+%a], ebp
+add dword ptr [ebp+%a], 0xFFFF%b
+mov dword ptr [ebp+%f], %g
+push eax
+mov eax, dword ptr [ebp+%f]
+push ebx
+mov ebx, 0
+push ecx
+mov ecx, dword ptr [ebp+%a]
+mov dword ptr [ebx+ecx], eax
+pop ecx
+pop ebx
+pop eax
+=
+mov dword ptr [ebp+%b], %g

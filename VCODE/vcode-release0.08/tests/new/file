@@ -1,0 +1,10 @@
+%ilist = (
+
+	# name		c-equiv operation	types
+	"add", 		"+" 	.		"i u ul l f d",
+	"sub", 		"-" 	. 		"i u ul l f d",
+	"xor", 		"-"	. 		"i u ul l",
+	"and", 		"&"	. 		"i u ul l",
+	"or", 		"|"	. 		"i u ul l",
+
+);

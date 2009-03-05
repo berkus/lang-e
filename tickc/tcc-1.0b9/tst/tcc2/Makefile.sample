@@ -1,0 +1,24 @@
+.PHONY: clean clean-all all
+
+CC	=	tcc
+CFLAGS	=	-C -keep -v
+SRCS	=	binary2.tc cmp2.tc dp.tc heap.tc hsh.tc ms.tc ntn.tc pow.tc \
+		query.tc mshl2.tc
+BINS	=	$(subst .tc,,$(SRCS))
+
+all: setup run
+
+setup:
+	@rm -f *.h *.tc; ln -s src/*.h .; ln -s src/*.tc .
+
+run:
+	perl ../regress.pl -v < src/regress-ic.in
+
+clean:
+	rm -f *.[ios] *.s.* *~ x*c.c core *.out *.err
+
+clean-all: clean
+	rm -f $(BINS)
+
+%: %.tc
+	$(CC) $(CFLAGS) -o $@ $^

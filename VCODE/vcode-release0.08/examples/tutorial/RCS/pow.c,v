@@ -1,0 +1,27 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.23.00.22.14;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include "vcode.h"
+#include "power.c"
+#include "power-driver.c"
+@

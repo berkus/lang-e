@@ -1,0 +1,820 @@
+#
+# Try to decode pseudo ops
+#
+
+inc r%a
+=
+add r%a, 0000000000001, r%a
++
+cmp r%a, %b
+=
+subcc r%a, %b, r0
++
+mov %a, %b
+=
+or r0, %a, %b
++
+
+#
+# Try to find instruction type
+#
+
+#load
+%a [%b], %c
+=
+MOP %a
+ADDR %b
+RD %c
++
+
+#store
+%a %b, [%c]
+=
+MOP %a
+ADDR %c
+RD %b
++
+
+#sethi
+sethi %a, r%b
+=
+JOP sethi
+IMM22 %a
+RD r%b
++
+
+nop
+=
+00 00000 100 0000000000000000000000
++
+
+b%a,a %b
+=
+JOP b%a
+BAN 1
+IMM22 %b
++
+
+b%a %b
+=
+JOP b%a
+BAN 0
+IMM22 %b
++
+
+fb%a,a %b
+=
+JOP fb%a
+BAN 1
+IMM22 %b
++
+
+fb%a %b
+=
+JOP fb%a
+BAN 0
+IMM22 %b
++
+
+call %a
+=
+01 %a
++
+
+jmpl %a, %b
+=
+AOP jmpl
+ADDR %a
+RD %b
++
+
+%a %b, r%c, %d
+=
+AOP %a
+RS1 %b
+RS2 r%c
+RD %d
++
+
+%a %b, %c, %d
+=
+AOP %a
+RS1 %b
+IMM13 %c
+RD %d
++
+
+#
+# Construct binary form of memory ops
+#
+
+BMOP %a
+BRS1 %b
+BRS2 %c
+BRD %d
+=
+11 %d %a %b 0 00000000 %c
++
+BMOP %a
+BRS1 %b
+BIMM13 %c
+BRD %d
+=
+11 %d %a %b 1 %c
++
+
+#
+# Construct binary form of branches, jumps, sethi
+#
+
+BJOP %a
+BIMM22 %b
+BRD %c
+=
+00 %c %a %b
++
+
+BJOP %a
+BAN %b
+BIMM22 %c
+=
+00 %b %a %c
++
+
+#
+# Construct binary form of arithmetic/logical ops
+#
+
+BAOP %a
+BRS1 %b
+BRS2 %c
+BRD %d
+=
+10 %d %a %b 0 00000000 %c
++
+
+BAOP %a
+BRS1 %b
+BIMM13 %c
+BRD %d
+=
+10 %d %a %b 1 %c
++
+
+#
+# Addressing modes
+#
+
+ADDR r%a+r%b
+=
+RS1 r%a
+RS2 r%b
++
+ADDR r%a+%b
+=
+RS1 r%a
+IMM13 %b
++
+ADDR r%a
+=
+RS1 r%a
+RS2 r0
++
+ADDR %b
+=
+RS1 r0
+IMM13 %b
++
+
+#
+# Immediates to binary immediates (no-op: require binary immediates)
+#
+
+IMM13 %%%a
+=
+BIMM13 %a------------
++
+IMM13 %a
+=
+BIMM13 %a
++
+IMM22 %%%a
+=
+BIMM22 %a---------------------
++
+IMM22 %a
+=
+BIMM22 %a
++
+
+#
+# Convert int registers to binary
+#
+
+R%a r%%%b
+=
+BR%a %b----
++
+R%a r0
+=
+BR%a 00000
++
+R%a r1
+=
+BR%a 00001
++
+R%a r2
+=
+BR%a 00010
++
+R%a r3
+=
+BR%a 00011
++
+R%a r4
+=
+BR%a 00100
++
+R%a r5
+=
+BR%a 00101
++
+R%a r6
+=
+BR%a 00110
++
+R%a r7
+=
+BR%a 00111
++
+R%a r8
+=
+BR%a 01000
++
+R%a r9
+=
+BR%a 01001
++
+R%a r10
+=
+BR%a 01010
++
+R%a r11
+=
+BR%a 01011
++
+R%a r12
+=
+BR%a 01100
++
+R%a r13
+=
+BR%a 01101
++
+R%a r14
+=
+BR%a 01110
++
+R%a r15
+=
+BR%a 01111
++
+R%a r16
+=
+BR%a 10000
++
+R%a r17
+=
+BR%a 10001
++
+R%a r18
+=
+BR%a 10010
++
+R%a r19
+=
+BR%a 10011
++
+R%a r20
+=
+BR%a 10100
++
+R%a r21
+=
+BR%a 10101
++
+R%a r22
+=
+BR%a 10110
++
+R%a r23
+=
+BR%a 10111
++
+R%a r24
+=
+BR%a 11000
++
+R%a r25
+=
+BR%a 11001
++
+R%a r26
+=
+BR%a 11010
++
+R%a r27
+=
+BR%a 11011
++
+R%a r28
+=
+BR%a 11100
++
+R%a r29
+=
+BR%a 11101
++
+R%a r30
+=
+BR%a 11110
++
+R%a r31
+=
+BR%a 11111
++
+R%a f0
+=
+BR%a 00000
++
+R%a f1
+=
+BR%a 00001
++
+R%a f2
+=
+BR%a 00010
++
+R%a f3
+=
+BR%a 00011
++
+R%a f4
+=
+BR%a 00100
++
+R%a f5
+=
+BR%a 00101
++
+R%a f6
+=
+BR%a 00110
++
+R%a f7
+=
+BR%a 00111
++
+R%a f8
+=
+BR%a 01000
++
+R%a f9
+=
+BR%a 01001
++
+R%a f10
+=
+BR%a 01010
++
+R%a f11
+=
+BR%a 01011
++
+R%a f12
+=
+BR%a 01100
++
+R%a f13
+=
+BR%a 01101
++
+R%a f14
+=
+BR%a 01110
++
+R%a f15
+=
+BR%a 01111
++
+R%a f16
+=
+BR%a 10000
++
+R%a f17
+=
+BR%a 10001
++
+R%a f18
+=
+BR%a 10010
++
+R%a f19
+=
+BR%a 10011
++
+R%a f20
+=
+BR%a 10100
++
+R%a f21
+=
+BR%a 10101
++
+R%a f22
+=
+BR%a 10110
++
+R%a f23
+=
+BR%a 10111
++
+R%a f24
+=
+BR%a 11000
++
+R%a f25
+=
+BR%a 11001
++
+R%a f26
+=
+BR%a 11010
++
+R%a f27
+=
+BR%a 11011
++
+R%a f28
+=
+BR%a 11100
++
+R%a f29
+=
+BR%a 11101
++
+R%a f30
+=
+BR%a 11110
++
+R%a f31
+=
+BR%a 11111
++
+
+#
+# Load/store opcodes
+#
+
+MOP %%%a
+=
+BMOP %a-----
++
+MOP ldsb
+=
+BMOP 001001
++
+MOP ldsh
+=
+BMOP 001010
++
+MOP ldub
+=
+BMOP 000001
++
+MOP lduh
+=
+BMOP 000010
++
+MOP ld
+=
+BMOP 000000
++
+MOP ldd
+=
+BMOP 000011
++
+MOP ldf
+=
+BMOP 100000
++
+MOP lddf
+=
+BMOP 100011
++
+MOP stb
+=
+BMOP 000101
++
+MOP sth
+=
+BMOP 000110
++
+MOP st
+=
+BMOP 000100
++
+MOP std
+=
+BMOP 000111
++
+MOP stf
+=
+BMOP 100100
++
+MOP stdf
+=
+BMOP 100111
++
+
+#
+# Branches, jumps, sethi
+#
+
+JOP sethi
+=
+BJOP 100
++
+JOP ba
+=
+BJOP 1000010
++
+JOP bn
+=
+BJOP 0000010
++
+JOP bne
+=
+BJOP 1001010
++
+JOP be
+=
+BJOP 0001010
++
+JOP bg
+=
+BJOP 1010010
++
+JOP ble
+=
+BJOP 0010010
++
+JOP bge
+=
+BJOP 1011010
++
+JOP bl
+=
+BJOP 0011010
++
+JOP bgu
+=
+BJOP 1100010
++
+JOP bleu
+=
+BJOP 0100010
++
+JOP bcc
+=
+BJOP 1101010
++
+JOP bcs
+=
+BJOP 0101010
++
+JOP bpos
+=
+BJOP 1110010
++
+JOP bneg
+=
+BJOP 0110010
++
+JOP bvc
+=
+BJOP 1111010
++
+JOP bvs
+=
+BJOP 0111010
++
+JOP fba
+=
+BJOP 1000110
++
+JOP fbn
+=
+BJOP 0000110
++
+JOP fbu
+=
+BJOP 0111110
++
+JOP fbg
+=
+BJOP 0110110
++
+JOP fbug
+=
+BJOP 0101110
++
+JOP fbl
+=
+BJOP 0100110
++
+JOP fbul
+=
+BJOP 0011110
++
+JOP fblg
+=
+BJOP 0010110
++
+JOP fbne
+=
+BJOP 0001110
++
+JOP fbe
+=
+BJOP 1001110
++
+JOP fbue
+=
+BJOP 1010110
++
+JOP fbge
+=
+BJOP 1011110
++
+JOP fbuge
+=
+BJOP 1100110
++
+JOP fble
+=
+BJOP 1101110
++
+JOP fbule
+=
+BJOP 1110110
++
+JOP fbo
+=
+BJOP 1111110
++
+
+#
+# Arithmetic and logical instructions
+#
+
+AOP %%%a
+=
+BAOP %a-----
++
+AOP and
+=
+BAOP 000001
++
+AOP andcc
+=
+BAOP 010001
++
+AOP andn
+=
+BAOP 000101
++
+AOP andncc
+=
+BAOP 010101
++
+AOP or
+=
+BAOP 000010
++
+AOP orcc
+=
+BAOP 010010
++
+AOP orn
+=
+BAOP 000110
++
+AOP orncc
+=
+BAOP 010110
++
+AOP xor
+=
+BAOP 000011
++
+AOP xorcc
+=
+BAOP 010011
++
+AOP xnor
+=
+BAOP 000111
++
+AOP xnorcc
+=
+BAOP 010111
++
+AOP sll
+=
+BAOP 100101
++
+AOP srl
+=
+BAOP 100110
++
+AOP sra
+=
+BAOP 100111
++
+AOP add
+=
+BAOP 000000
++
+AOP addcc
+=
+BAOP 010000
++
+AOP addx
+=
+BAOP 001000
++
+AOP addxcc
+=
+BAOP 011000
++
+AOP sub
+=
+BAOP 000100
++
+AOP subcc
+=
+BAOP 010100
++
+AOP subx
+=
+BAOP 001100
++
+AOP subxcc
+=
+BAOP 011100
++
+AOP umul
+=
+BAOP 001010
++
+AOP smul
+=
+BAOP 001011
++
+AOP umulcc
+=
+BAOP 011010
++
+AOP smulcc
+=
+BAOP 011011
++
+AOP udiv
+=
+BAOP 001110
++
+AOP sdiv
+=
+BAOP 001111
++
+AOP udivcc
+=
+BAOP 011110
++
+AOP sdivcc
+=
+BAOP 011111
++
+AOP save
+=
+BAOP 111100
++
+AOP restore
+=
+BAOP 111101
++
+AOP jmpl
+=
+BAOP 111000
++

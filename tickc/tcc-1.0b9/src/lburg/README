@@ -1,0 +1,10 @@
+Some changes to the standard lburg that comes with lcc:
+
+gram.y: 
+	* lengthened BUFSIZ
+	* moved declaration of yylineno to top of file, to avoid
+	  "declaration before use" errors when running bison instead
+	  of yacc
+	* renamed TERM to TERMINAL to avoid clash of enum and #define
+	  names when using bison (enum definitoin of TERM occurs in
+	  lburg.h)

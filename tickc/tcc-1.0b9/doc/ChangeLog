@@ -1,0 +1,31 @@
+1.0b5: 
+       * much code and docs cleanup; icode bug fixes
+1.0b6: 
+       * fixed install: no longer depends on having '.' in PATH
+1.0b7:
+       * improved install (should be completely automatic now: no more
+       fussing with config/sys/my-machine.c)
+       * cleaned up vcode build (no more bpp binary in distribution,
+       makefiles named by arch-os to allow automatic installation, etc.)
+       * icode: float aggregates (arrays of floats, structs with floats
+       in them) now work
+       * added preliminary support for solaris (C-to-C mode still breaks
+       because of problems with header files)
+1.0b8:
+       * finished solaris support
+       * added support for SimpleScalar simulator
+       * added vcode-x86 and preliminary x86 support (but rcc doesn't work
+       yet)
+       * added fast live variable analysis to icode
+       * plenty of bug fixes and cleanup
+1.0b9:
+       * icode rewrite: it is now easier to extend and a little faster
+       than before
+       * added bpo, a programmable binary peephole optimizer (however, it
+       currently only knows a few sparc-specific peephole rules)
+       * moved common code for vcode, icode, and the run-time system into
+       src/sup
+       * better error checking/handling in front-end
+       * fixed some install bugs
+       * added benchmarks/tests (in tst/tcc2) and improved the
+       benchmarking infrastructure

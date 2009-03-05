@@ -1,0 +1,14 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(./bv.h)
+
+AC_CONFIG_AUX_DIR(../../config)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_PATH_PROG(AR, ar)
+AC_PATH_PROG(PERL, perl)
+AC_PATH_PROG(TAGS, etags)
+
+AC_OUTPUT(Makefile)

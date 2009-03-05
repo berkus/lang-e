@@ -1,0 +1,17 @@
+Manifest:
+	+ dcg.c  contains code to fab code on the fly to perform multiplication
+of a matrix by an integer
+	+ static.c performs this operation without DCG.
+	+ booth-gen generates tables to perform strength-reduction
+	+ mult.c uses these tables to strength-reduce constant multiplies upto 1024
+
+To check output:
+	static -n 8 -v
+	dcg	-n 8 -v
+To time:
+	static -n 64 -t 3 -c 1024
+	dcg -n 64 -t 3 -c 1024
+
+-t controls the number of trials
+-n controls the matrix size
+-c determines the range of constants; will not work for more than 1024

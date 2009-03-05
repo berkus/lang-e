@@ -1,0 +1,111 @@
+(
+ dfa => {
+     prog	=>	"dfa",
+     comp 	=> 	3000,
+     runs 	=> 	800000,
+     data 	=> 	0,
+ },
+ binary =>  {
+     prog	=>	"binary",
+     comp	=>	800,
+     runs	=>	600000,
+     data	=>	0,
+ },
+ ilp => {
+     prog	=>	"cmp2",
+     comp	=>	4000,
+     runs	=>	400,
+     data	=>	4096,
+ },
+ dp => {
+     prog	=>	"dp",
+     comp	=>	4000,
+     runs	=>	80000,
+     data	=>	40,
+ },
+#  oldheap => {
+#      prog	=>	"heap",
+#      comp	=>	8000,
+#      runs	=>	300,
+#      data	=>	500,
+#  },
+#  olddheap => {
+#      prog	=>	"hp2",
+#      comp	=>	8000,
+#      runs	=>	300,
+#      data	=>	500,
+#  },
+ oldheap => {
+     prog	=>	"heapx",
+     comp	=>	8000,
+     runs	=>	300,
+     data	=>	500,
+ },
+ # heap is the former dheap
+ heap => {
+     prog	=>	"hp2x",
+     comp	=>	8000,
+     runs	=>	300,
+     data	=>	500,
+ },
+ hash => {
+     prog	=>	"hsh",
+     comp	=>	4000,
+     runs	=>	500000,
+     data	=>	0,
+ },
+#  oldms => {
+#      prog	=>	"ms",
+#      comp	=>	4000,
+#      runs	=>	300,
+#      data	=>	31,
+#  },
+ ms => {
+     prog	=>	"ms2",
+     comp	=>	400,
+     runs	=>	300,
+     data	=>	100,
+ },
+#  oldntn => {
+#      prog	=>	"ntn",
+#      comp	=>	3000,
+#      runs	=>	6000,
+#      data	=>	0,
+#  },
+ ntn => {
+     prog	=>	"ntn1",
+     comp	=>	3000,
+     runs	=>	6000,
+     data	=>	0,
+ },
+#  oldpow => {
+#      prog	=>	"pow",
+#      comp	=>	8000,
+#      runs	=>	500000,
+#      data	=>	0,
+#  },
+ pow => {
+     prog	=>	"pow2",
+     comp	=>	2000,
+     runs	=>	100000,
+     data	=>	40,
+ },
+ query => {
+     prog	=>	"query",
+     comp	=>	2000,
+     runs	=>	1000,
+     data	=>	2000,
+ },
+ mshl => {
+     prog	=>	"mshl2",
+     comp	=>	6000,
+     runs	=>	500000,
+     data	=>	1,
+ },
+ unmshl => {
+     prog	=>	"mshl2",
+     comp	=>	6000,
+     runs	=>	500000,
+     data	=>	0,
+ },
+ )

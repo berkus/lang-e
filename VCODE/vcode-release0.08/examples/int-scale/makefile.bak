@@ -1,0 +1,57 @@
+CC=gcc
+VDIR=../../vcode-src
+CFLAGS= -O2 -I- -I. -I$(VDIR) -Wall 
+# CFLAGS= -g -O2 -I- -I. -I$(VDIR) -Wall 
+LIBS= $(VDIR)/vcode.lib.a  /usr/lib/libmld.a # include for mips
+# /usr/lib/libmld.a # include for mips
+OBJS= dcg.o mult.o
+
+all: static dcg sdcg
+
+dcg: $(OBJS) $(LIBS) $(VDIR)/vcode.h
+	$(CC) $(CFLAGS) -o dcg $(OBJS) $(LIBS) -lm
+	dcg -n 64 -v > dcg.out
+	diff static.out dcg.out
+	rm dcg.out
+
+sdcg: mult.o sdcg.o $(LIBS) $(VDIR)/vcode.h
+	$(CC) $(CFLAGS) -o sdcg sdcg.o mult.o $(LIBS) -lm
+	sdcg -n 64 -v > sdcg.out
+	diff static.out sdcg.out
+	rm sdcg.out
+
+
+static: static.c
+	$(CC) $(CFLAGS) -o static static.c 
+
+mult.h:	booth-gen
+	booth-gen	4096	> mult.h
+
+dcg.o: $(VDIR)/vcode.h
+sdcg.o: $(VDIR)/vcode.h
+mult.o: $(VDIR)/vcode.h mult.h
+
+booth-gen: booth-gen.c
+	$(CC) $(CFLAGS) -o booth-gen booth-gen.c
+
+clean:
+	rm -f *.o dcg static *.Addrs *.pixie *.Counts booth-gen
+# DO NOT DELETE THIS LINE -- make depend depends on it.
+
+booth-gen.o: /usr/include/stdio.h /usr/include/standards.h
+dcg.o: /usr/include/stdio.h /usr/include/standards.h /usr/include/malloc.h
+dcg.o: stopwatch.h /usr/include/assert.h /usr/include/sys/time.h
+dcg.o: /usr/include/sys/limits.h /usr/include/sys/types.h
+dcg.o: /usr/include/sys/signal.h /usr/include/sys/machine/signal.h
+dcg.o: /usr/include/sys/time.h /usr/include/sys/resource.h
+mult.o: mult.h
+sdcg.o: /usr/include/stdio.h /usr/include/standards.h /usr/include/malloc.h
+sdcg.o: stopwatch.h /usr/include/assert.h /usr/include/sys/time.h
+sdcg.o: /usr/include/sys/limits.h /usr/include/sys/types.h
+sdcg.o: /usr/include/sys/signal.h /usr/include/sys/machine/signal.h
+sdcg.o: /usr/include/sys/time.h /usr/include/sys/resource.h
+static.o: /usr/include/stdio.h /usr/include/standards.h stopwatch.h
+static.o: /usr/include/assert.h /usr/include/sys/time.h
+static.o: /usr/include/sys/limits.h /usr/include/sys/types.h
+static.o: /usr/include/sys/signal.h /usr/include/sys/machine/signal.h
+static.o: /usr/include/sys/time.h /usr/include/sys/resource.h

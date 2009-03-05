@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include "benchmark.h"
+
+typedef double (*dptr)(double);
+
+double pow(double base, int exp) {
+     int t, bit = 1;
+     double result = 1.0;
+
+     while (bit <= exp) {
+	  if (bit & exp)
+	       result *= base;
+	  bit = bit << 1;
+	  base *= base;
+     }
+     return result;
+}
+
+dptr mkpow(int exp) {
+     double vspec base = param(double,0);
+     switch (exp) {
+     case 0:
+	  return compile(`{ return 1.; },double);
+     case 1:
+	  return compile(`{ return @base; },double);
+     default:
+     {
+	  double vspec result = local( double);
+	  void cspec squares;
+	  int init = 0, bit = 2;
+
+	  if (1 & exp) {
+	       squares = `{ @result = @base; };
+	       init = 1;
+	  } else squares = `{};
+	  while (bit <= exp) {
+	       squares = `{ @squares; @base *= @base; };
+	       if (bit & exp) {
+		    if (init)
+			 squares = `{ @squares; @result *= @base; };
+		    else {
+			 squares = `{ @squares; @result = @base; };
+			 init = 1;
+		    }
+	       }
+	       bit = bit << 1;
+	  }
+	  return compile(`{ @squares; return @result; },double);
+     }
+     }
+}
+
+void main(int argc, char **argv) {
+     int i;
+     dptr f, f2;
+
+     doargs(argc,argv);
+     printf("## pow ##\n");
+     if (optDCG) {
+	  f2 = mkpow(ndata);	/* Warm cache */
+
+	  SWON("compilation");
+	  for (i=0; i<ncomp; i++) {
+	       f = mkpow(ndata);
+	       decompile(f);
+	  }
+	  SWOFF;
+
+	  f = f2;
+	  if (!f) return;
+	  dump(f);
+
+	  (*f)((double)2.);	/* Warm up cache */
+	  SWON("run");
+	  for (i = 0; i<nruns; i++)
+	       (*f)((double)2.);
+	  SWOFF;
+	  if (optVerbose)
+	       printf("** %e\n",(double)(*f)((double)2.));
+     } else {
+	  pow((double)2.,ndata); /* Warm up cache */
+	  SWON("run");
+	  for (i = 0; i<nruns; i++)
+	       pow((double)2.,ndata);
+	  SWOFF;
+	  if (optVerbose)
+	       printf("** %e\n",(double)pow((double)2.,ndata));
+     }
+}

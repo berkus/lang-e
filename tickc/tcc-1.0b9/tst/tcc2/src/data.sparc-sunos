@@ -1,0 +1,68 @@
+(
+	       binary =>  {
+		   exec	=>	"binary",
+		   comp	=>	400,
+		   runs	=>	600000,
+		   data	=>	0,
+	       },
+	       ilp => {
+		   exec	=>	"cmp2",
+		   comp	=>	2000,
+		   runs	=>	400,
+		   data	=>	4096,
+	       },
+	       dp => {
+		   exec	=>	"dp",
+		   comp	=>	2000,
+		   runs	=>	80000,
+		   data	=>	32,
+	       },
+	       heap => {
+		   exec	=>	"heap",
+		   comp	=>	4000,
+		   runs	=>	100,
+		   data	=>	500,
+	       },
+	       hash => {
+		   exec	=>	"hsh",
+		   comp	=>	2000,
+		   runs	=>	500000,
+		   data	=>	0,
+	       },
+	       ms => {
+		   exec	=>	"ms",
+		   comp	=>	2000,
+		   runs	=>	300,
+		   data	=>	100,
+	       },
+	       ntn => {
+		   exec	=>	"ntn",
+		   comp	=>	1500,
+		   runs	=>	6000,
+		   data	=>	0,
+	       },
+	       pow => {
+		   exec	=>	"pow",
+		   comp	=>	4000,
+		   runs	=>	500000,
+		   data	=>	13,
+	       },
+	       query => {
+		   exec	=>	"query",
+		   comp	=>	1000,
+		   runs	=>	1000,
+		   data	=>	2000,
+	       },
+	       mshl => {
+		   exec	=>	"mshl2",
+		   comp	=>	3000,
+		   runs	=>	500000,
+		   data	=>	1,
+	       },
+	       unmshl => {
+		   exec	=>	"mshl2",
+		   comp	=>	3000,
+		   runs	=>	500000,
+		   data	=>	0,
+	       },
+	  )

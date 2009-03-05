@@ -1,0 +1,21 @@
+AC_INIT(src/rcc/vcode.md)
+
+AC_PREFIX_DEFAULT(`pwd`)
+dnl Remember to set srcdir=$cwd
+
+AC_CONFIG_AUX_DIR(config)
+AC_CANONICAL_SYSTEM
+
+dnl Checks for programs.
+AC_PATH_PROG(PERL, perl)
+AC_PATH_PROG(FIND, find)
+AC_PATH_PROG(XARGS, xargs)
+AC_PATH_PROG(GCC, gcc)
+AC_PATH_PROG(AS, as)
+AC_PATH_PROG(LD, ld)
+AC_PATH_PROG(RM, rm)
+AC_PATH_PROG(MKDIR, mkdir)
+AC_PATH_PROG(LNDIR, lndir)
+AC_PROG_LN_S
+
+AC_OUTPUT(./Makefile)

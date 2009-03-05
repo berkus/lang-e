@@ -1,0 +1,58 @@
+T=$(SRC)/../tst
+RUN=$(SRC)/run
+RCC=rcc
+LCC=lcc
+# * TARGETARCH is the target architecture, not the one we run the
+# crosscompiler on;
+# * ./tst${TARGETARCH} subdirs of the current dir must exist for each
+# target architecture
+TARGETARCH=mips
+TARGET=mips-ultrix
+CMD=@$(RUN) $(TARGET) $(TARGETARCH)
+
+test:	tst/8q.s tst/array.s tst/cf.s tst/cq.s tst/cvt.s tst/fields.s \
+	tst/front.s tst/incr.s tst/init.s tst/limits.s tst/paranoia.s \
+	tst/sort.s tst/spill.s tst/stdarg.s tst/struct.s tst/switch.s \
+	tst/wf1.s tst/yacc.s
+
+tst/8q.s:	$(RUN) $(RCC) $(T)/8q.c		$(T)/8q.0;	$(CMD) 8q
+tst/array.s:	$(RUN) $(RCC) $(T)/array.c	$(T)/array.0;	$(CMD) array
+tst/cf.s:	$(RUN) $(RCC) $(T)/cf.c		$(T)/cf.0;	$(CMD) cf
+tst/cq.s:	$(RUN) $(RCC) $(T)/cq.c		$(T)/cq.0;	$(CMD) cq
+tst/cvt.s:	$(RUN) $(RCC) $(T)/cvt.c	$(T)/cvt.0;	$(CMD) cvt
+tst/fields.s:	$(RUN) $(RCC) $(T)/fields.c	$(T)/fields.0;	$(CMD) fields
+tst/front.s:	$(RUN) $(RCC) $(T)/front.c	$(T)/front.0;	$(CMD) front
+tst/incr.s:	$(RUN) $(RCC) $(T)/incr.c	$(T)/incr.0;	$(CMD) incr
+tst/init.s:	$(RUN) $(RCC) $(T)/init.c	$(T)/init.0;	$(CMD) init
+tst/limits.s:	$(RUN) $(RCC) $(T)/limits.c	$(T)/limits.0;	$(CMD) limits
+tst/paranoia.s:	$(RUN) $(RCC) $(T)/paranoia.c	$(T)/paranoia.0;$(CMD) paranoia
+tst/sort.s:	$(RUN) $(RCC) $(T)/sort.c	$(T)/sort.0;	$(CMD) sort
+tst/spill.s:	$(RUN) $(RCC) $(T)/spill.c	$(T)/spill.0;	$(CMD) spill
+tst/stdarg.s:	$(RUN) $(RCC) $(T)/stdarg.c	$(T)/stdarg.0;	$(CMD) stdarg
+tst/struct.s:	$(RUN) $(RCC) $(T)/struct.c	$(T)/struct.0;	$(CMD) struct
+tst/switch.s:	$(RUN) $(RCC) $(T)/switch.c	$(T)/switch.0;	$(CMD) switch
+tst/wf1.s:	$(RUN) $(RCC) $(T)/wf1.c      	$(T)/wf1.0;	$(CMD) wf1
+tst/yacc.s:	$(RUN) $(RCC) $(T)/yacc.c     	$(T)/yacc.0;	$(CMD) yacc
+
+OPTS=CC='$(LCC) -B./ -d0.1 -A' \
+	CFLAGS='-Wf-target=$(TARGET) -I$(SRC)/../include/`echo $(TARGET)|tr - /` \
+	-I$(SRC)' LDFLAGS='$(LDFLAGS)'
+
+triple:	rcc
+	rm -f *.o
+	make -f $(SRC)/makefile $(OPTS)
+	-strip rcc
+	-od rcc +8 >od2
+	rm -f *.o
+	make -f $(SRC)/makefile $(OPTS)
+	-strip rcc
+	-od rcc +8 >od3
+	cmp od[23] && rm od[23]
+
+testclean:
+	-rm -f tst/*.[12so]
+	-cd tst; rm -f 8q array cf cq cvt fields front incr init \
+		limits paranoia sort spill stdarg struct switch wf1 yacc
+	
+testcleanall: testclean
+	-rm -f tst/*.[s1i]*	

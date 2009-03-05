@@ -1,0 +1,51 @@
+#############################################################################
+# Cleanup installation (we only want to delete certain executables)
+#
+# usage: 
+#	perl pack
+# 
+
+chdir("vcode-src");
+&run_sys("Cleaning up vcode", "make clean");
+chdir("../tests");
+&run_sys("Cleaning up regression tests", "make clean");
+
+# Should stat this and get all directories.
+chdir("../examples/tutorial");
+&run_sys("Cleaning up tutorial", "make clean");
+chdir("../scale");
+&run_sys("Cleaning up scale", "make clean");
+chdir("../calc");
+&run_sys("Cleaning up calc", "make clean");
+chdir("../executable-data-structures");
+&run_sys("Cleaning up exec", "make clean");
+chdir("../marshal");
+&run_sys("Cleaning up marshal", "make clean");
+chdir("../memcpy");
+&run_sys("Cleaning up memcpy", "make clean");
+chdir("../strcmp");
+&run_sys("Cleaning up strcmp", "make clean");
+
+# get the name of the current directory.
+chdir("../..");
+$dir = `pwd`;
+chop $dir;
+
+$dir =~ s/.*\/(.*)/$tfile = $1/e; # slurp the last name in the tree
+
+chdir("../");
+&run_sys("Creating tar file ../$tfile.tar", "tar -cfB - $tfile > $tfile.tar");
+&run_sys("Compressing", "compress $tfile.tar");
+
+print "Done\n";
+
+# Run & print cmds's output to screen (there has got to be a better way...)
+sub run_sys {
+	local($msg, $cmd) = @_;
+
+	print "\n$msg\n";
+	open(MAKE, "$cmd |") || die "Couldn't run <$cmd>: $!\n";
+	while(<MAKE>) { print; } 
+	close(MAKE);
+	$? == 0 || die "<$cmd> failed.  Status = $?\n";
+}

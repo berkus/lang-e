@@ -1,0 +1,95 @@
+.PHONY: all install clean dist-clean tags psify
+
+VPATH	= 	@srcdir@
+
+PERL	=	@PERL@
+CC	=	@CC@
+AS	=	@AS@
+LD	=	@LD@
+INSTALL =	@INSTALL@
+LN_S	=	@LN_S@
+TAGS	=	@TAGS@
+
+ifeq ($(T_OS),sstrix)
+DARCH	=	-D__SIMPLE_SCALAR__
+else
+DARCH	=
+endif
+
+d_prl	=	-D_TICKC_PRL=\"$(PERL)\"
+d_bin	=	-D_TICKC_BIN=\"$(bindir)\"
+d_lib	=	-D_TICKC_LIB=\"$(libdir)\"
+d_inc	=	-D_TICKC_INC=\"$(includedir)\"
+d_cpp	=	-D_TICKC_CPP=\"$(libdir)/cpp\"
+d_com	=	-D_TICKC_COM=\"$(libdir)/rcc\"
+d_ld	=	-D_TICKC_LD=\"$(LD)\"
+d_as	=	-D_TICKC_AS=\"$(AS)\"
+d_bbx	=	-D_TICKC_BBX=\"$(libdir)/bbexit.o\"
+d_tgt	=	-D_TARGET=\"__$(T_CPU)__\"
+xdefs	=	$(d_prl) $(d_bin) $(d_lib) $(d_inc) \
+		$(d_cpp) $(d_com) $(d_ld) $(d_as) 
+
+CFLAGS	=	-ggdb -O -ansi -pedantic -fno-builtin -Wall -Wno-parentheses \
+			$(xdefs) $(d_bbx) $(d_tgt) -I@srcdir@
+LBURG	=	$(bindir)/lburg
+
+HDRS	=	@srcdir@/c.h @srcdir@/token.h @srcdir@/config.h
+SRCS	=	alloc.c bind.c c-backend.c closure.c dag.c decl.c \
+		enode.c error.c expr.c event.c gen.c idef.c \
+		init.c input.c lex.c list.c main.c output.c \
+		prof.c profio.c simp.c stmt.c string.c sym.c \
+		trace.c tree.c types.c
+MMD	=	symbolic.c null.c
+AMD	=	mips.c sparc.c x86.c linux.c icode.c vcode.c vcodex86.c
+OBJS	=	$(SRCS:.c=.o) $(MMD:.c=.o)
+AUTO	=	$(AMD:.c=.o)
+TCCENV	=	environ.h
+TCCMAC	=	@srcdir@/macros.h
+
+all: install
+
+install: rcc $(TCCENV) $(TCCMAC)
+	$(INSTALL) -m 0755 rcc $(libdir)
+	$(INSTALL) -m 0644 $(TCCENV) $(includedir)/tickc/tickc-env.h
+	$(INSTALL) -m 0644 $(TCCMAC) $(includedir)/tickc/tickc-macros.h
+
+rcc:	$(OBJS) $(AUTO)
+	$(CC) -o $@ $(LDFLAGS) $(OBJS) $(AUTO)
+
+$(OBJS): 	$(HDRS)
+mips.o:		@srcdir@/mips.md $(HDRS)
+sparc.o:	@srcdir@/sparc.md $(HDRS)
+linux.o:	@srcdir@/linux.md $(HDRS)
+x86.o: 		@srcdir@/x86.md $(HDRS)
+icode.o:	@srcdir@/icode.md $(HDRS)
+vcode.o:	@srcdir@/vcode.md $(HDRS)
+vcodex86.o:	@srcdir@/vcodex86.md $(HDRS)
+
+# Code Generators
+$(AUTO):
+	if [ -f $(subst .o,.c,$@) ]; then \
+		chmod 644 $(subst .o,.c,$@);\
+	fi ;\
+	$(LBURG) < @srcdir@/$(subst .o,.md,$@) > $(subst .o,.c,$@)
+	chmod 444 $(subst .o,.c,$@)
+	$(CC) $(CFLAGS) -c $(subst .o,.c,$@)
+
+$(TCCENV): $(includedir)/tickc/icode.h $(includedir)/tickc/tickc-rts.h
+	rm -f $(TCCENV)
+	($(CPP) -nostdinc -undef -D__$(T_CPU)__ $(DARCH) \
+		-I$(includedir)/tickc $(includedir)/tickc/tickc-rts.h | \
+		$(PERL) @srcdir@/etc/envgen.pl > $(TCCENV) ) > /dev/null 2>&1
+
+clean:
+	rm -f rcc *.o *.ps *~ $(AUTO)
+
+dist-clean: clean
+	rm -f @srcdir@/TAGS
+
+tags:
+	cd @srcdir@; $(TAGS) -t *.c *.h *.md
+
+psify:
+	for p in $(SRCS); do \
+		psify -2 -c @srcdir@/$$p > `echo $$p | sed "s/\.c/\.ps/g"` ;\
+	done

@@ -1,0 +1,21 @@
+insn	::=	opcode mr8
+	|	opcode mr16
+	|	opcode mr32
+	|	opcode rm8
+	|	opcode rm16
+	|	opcode rm32
+
+mr32	::=	m32 r32
+m32	::=	r32 | 'dword ptr' m32
+r32	::=	'eax' | 'ecx' | 'edx' | 'ebx' | 'esp' | 'ebp' | 'esi' | 'edi'
+m32a	::=	m32a00 | m32a01 | m32a10 | m32a11
+m32a00	::=	'[' r32 ']' { mod=00, rm=$1 }
+	| 	'[' r32 '+' r32 ']' { mod=00, rm=100, ss=00, sidx=$1, sbase=$3 }
+	|	'[' r32 '+' r32 '*' scale ']' { mod=00, rm=100, ss=$5, sidx=$1, sbase=$3 }
+	|	disp32 { mod=00, rm=101, imm32=$3 }
+
+m32a01	::=	'[' r32 '+' disp8 ']' { mod=01, rm=$1, imm8=$3 }
+m32a10	::=	'[' r32 '+' disp32 ']' { mod=10, rm=$1, imm32=$3 }
+	|	'[' r32 '+' r32 '*' scale '+' disp32 ']' { ... }
+m32a11	::=	r32 { mod=11, rm=$1 }
+

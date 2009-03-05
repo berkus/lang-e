@@ -1,0 +1,54 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.22.18.26.04;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* Create a leaf function that will return the next integer from 0 .. 2^32 */
+v_uptr mk_stream(void) {
+	/* Allocate space for code */
+	v_code *code = (void *)malloc(sizeof(v_code) * 100);
+
+        v_lambda("int-stream", "", 0, V_LEAF, code);
+	{
+		/* state is initially set to ``0'' */
+		void *state = calloc(1, sizeof(unsigned));
+		v_reg_type state_r, temp, res;
+
+		/* allocate register to hold pointer to per-function storage. */
+		v_getreg(&state_r, V_P, V_TEMP);	
+		/* allocate two scratch registers */
+		v_getreg(&temp, V_P, V_TEMP);		
+
+		/* load pointer to state into register */
+		v_setp(state_r, state);		/* SET Pointer */
+		/* Load current state value */
+		v_ldui(temp, state_r, 0);	/* LoaD Unsigned Immediate */
+		/* Add 1 to it. */
+		v_addui(temp, temp, 1);		/* ADD Unsigned Immediate */
+		/* Store the new value into state */
+		v_stui(temp, state_r, 0);	/* STore Unsigned Immediate */
+		/* Return new value */
+		v_retu(temp);  			/* RETurn Unsigned */
+	}
+        /* Compile and return an unsigned function pointer. */
+        return v_end().u;      
+}
+@

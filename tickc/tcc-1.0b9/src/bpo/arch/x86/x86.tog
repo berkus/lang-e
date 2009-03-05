@@ -1,0 +1,505 @@
+nop
+=
+10010000
++
+
+#
+# Break down push insn
+#
+
+push imm%a %b
+=
+<push.insn-begin>
+<imm%a/val=%b=val>
+<push.insn-end>
++
+push %a
+=
+<push.insn-begin>
+<a> %a
+<push.insn-end>
++
+
+#
+# Build up push insn
+#
+
+<push.insn-begin>
+<imm8/val=%b=val>
+<push.insn-end>
+=
+<push/bits=01101010 %b>
++
+<push.insn-begin>
+<imm32/val=%b=val>
+<push.insn-end>
+=
+<push/bits=01101000 %b>
++
+<push.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<push.insn-end>
+=
+<push/bits=11111111 %b110%c%d>
++
+<push.insn-begin>
+<r32/reg=%a=reg>
+<push.insn-end>
+=
+<push/bits=01010%a>
++
+
+#
+# Break down pop insn
+#
+
+pop %a
+=
+<pop.insn-begin>
+<a> %a
+<pop.insn-end>
++
+
+#
+# Build up pop insn
+#
+
+<pop.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<pop.insn-end>
+=
+<pop/bits=10001111 %b000%c%d>
++
+<pop.insn-begin>
+<r32/reg=%a=reg>
+<pop.insn-end>
+=
+<pop/bits=01011%a>
++
+
+#
+# Break down call insn
+#
+
+call %a
+=
+<call.insn-begin>
+<a> %a
+<call.insn-end>
++
+
+#
+# Build up call insn
+#
+
+<call.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<call.insn-end>
+=
+<call/bits=11111111 %b010%c%d>
++
+
+#
+# Break down add instruction
+#
+
+add %a, imm%c %b
+=
+<add.insn-begin>
+<a> %a
+<imm%c/val=%b=val>
+<add.insn-end>
++
+add %a
+=
+<add.insn-begin>
+<addrmode> %a
+<add.insn-end>
++
+
+#
+# Build up add instruction
+#
+
+<add.insn-begin>
+<r32/reg=%a=reg>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<add.insn-end>
+=
+<add/bits=00000011%b%a%c%d>
++
+<add.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<r32/reg=%a=reg>
+<add.insn-end>
+=
+<add/bits=00000001%b%a%c%d>
++
+<add.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<imm32/val=%a=val>
+<add.insn-end>
+=
+<add/bits=10000001%b000%c%d%a>
++
+<add.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<imm8/val=%a=val>
+<add.insn-end>
+=
+<add/bits=10000011%b000%c%d%a>
++
+
+#
+# Break down inc instruction
+#
+
+inc %a
+=
+<inc.insn-begin>
+<a> %a
+<inc.insn-end>
++
+
+#
+# Build up inc instruction
+#
+
+<inc.insn-begin>
+<r32/reg=%a=reg>
+<inc.insn-end>
+=
+<inc/bits=01000%a>
++
+<inc.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<inc.insn-end>
+=
+<inc/bits=11111111%b000%c%d>
++
+
+#
+# Break down move instruction
+#
+
+mov %a, imm%c %b
+=
+<mov.insn-begin>
+<a> %a
+<imm%c/val=%b=val>
+<mov.insn-end>
++
+mov %a
+=
+<mov.insn-begin>
+<addrmode> %a
+<mov.insn-end>
++
+
+#
+# Build move instruction
+#
+
+<mov.insn-begin>
+<r32/reg=%a=reg>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<mov.insn-end>
+=
+<mov/bits=10001011%b%a%c%d>
++
+<mov.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<r32/reg=%a=reg>
+<mov.insn-end>
+=
+<mov/bits=10001001%b%a%c%d>
++
+<mov.insn-begin>
+<m32/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<imm32/val=%a=val>
+<mov.insn-end>
+=
+<mov/bits=11000111%b000%c%d%a>
++
+<mov.insn-begin>
+<m8/mod=%b=mod,rm=%c=rm,sibetc=%d=sibetc>
+<imm8/val=%a=val>
+<mov.insn-end>
+=
+<mov/bits=11000110%b000%c%d%a>
++
+
+#
+# Break down address modes
+#
+
+<addrmode> %a, %b
+=
+<a> %a
+<a> %b
++
+<a> dword ptr %a
+=
+<m32> %a
++
+<a> byte ptr %a
+=
+<m8> %a
++
+
+# this is only a hack; need more work to distinguish 8/16/32 bit regs
+<a> %a
+=
+<r32> %a
++
+# Encode reg/reg as mem/reg
+<%x.insn-begin>
+<r%y/reg=%a=reg>
+<r%z/reg=%b=reg>
+<%x.insn-end>
+=
+<%x.insn-begin>
+<m%y/mod=11=mod,rm=%a=rm,sibetc==sibetc>
+<r%z/reg=%b=reg>
+<%x.insn-end>
++
+# Encode reg/imm as mem/imm
+<%a.insn-begin>
+<r32/reg=%b=reg>
+<imm%d/val=%c=val>
+<%a.insn-end>
+=
+<%a.insn-begin>
+<m32/mod=11=mod,rm=%b=rm,sibetc==sibetc>
+<imm%d/val=%c=val>
+<%a.insn-end>
++
+
+#
+# Encode/decode "disp32[--][--]"
+#
+
+<m%x> [ %a + %b * %c + imm32 %d ]
+=
+<m%x.begin>
+<r32> %a
+<r32> %b
+<log2> %c
+<imm32/val=%d=val>
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<r32/reg=%b=reg>
+<log2/val=%c=val>
+<imm32/val=%d=val>
+<m%x.end>
+=
+<m%x/mod=10=mod,rm=100=rm,ss=%c=ss,base=%a=base,index=%b=index,imm=%d=imm>
++
+
+#
+# Encode/decode "disp8[--][--]"
+#
+
+<m%x> [ %a + %b * %c + imm8 %d ]
+=
+<m%x.begin>
+<r32> %a
+<r32> %b
+<log2> %c
+<imm8/val=%d=val>
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<r32/reg=%b=reg>
+<log2/val=%c=val>
+<imm8/val=%d=val>
+<m%x.end>
+=
+<m%x/mod=01=mod,rm=100=rm,ss=%c=ss,base=%a=base,index=%b=index,imm=%d=imm>
++
+
+#
+# Encode/decode "[--][--]"
+#
+
+<m%x> [ %a + %b * %c ]
+=
+<m%x.begin>
+<r32> %a
+<r32> %b
+<log2> %c
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<r32/reg=%b=reg>
+<log2/val=%c=val>
+<m%x.end>
+=
+<m%x/mod=00=mod,rm=100=rm,ss=%c=ss,base=%a=base,index=%b=index,imm==imm>
++
+
+#
+# Encode/decode "disp8[reg]"
+#
+
+<m%x> [ %a + imm8 %b ]
+=
+<m%x.begin>
+<r32> %a
+<imm8/val=%b=val>
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<imm8/val=%b=val>
+<m%x.end>
+=
+<m%x/mod=01=mod,rm=%a=rm,sibetc=%b=sibetc>
++
+
+#
+# Encode/decode "disp32[reg]"
+#
+
+<m%x> [ %a + imm32 %b ]
+=
+<m%x.begin>
+<r32> %a
+<imm32> %b
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<imm32/val=%b=val>
+<m%x.end>
+=
+<m%x/mod=01=mod,rm=%a=rm,sibetc=%b=sibetc>
++
+
+#
+# Encode/decode "[--][--]" (with no scale or displacement)
+#
+
+<m%x> [ %a + %b ]
+=
+<m%x.begin>
+<r32> %a
+<r32> %b
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<r32/reg=%b=reg>
+<m%x.end>
+=
+<m%x/mod=00=mod,rm=100=rm,ss=00=ss,base=%a=base,index=%b=index,imm==imm>
++
+
+#
+# Encode/decode "disp32"
+#
+
+<m%x> imm32 %a
+=
+<m%x/mod=00=mod,rm=100=rm,ss=00=ss,base=101=base,index=100=index,imm=%a=imm>
++
+
+#
+# Encode/decode "[reg]"
+#
+
+<m%x> [ %a ]
+=
+<m%x.begin>
+<r32> %a
+<m%x.end>
++
+<m%x.begin>
+<r32/reg=%a=reg>
+<m%x.end>
+=
+<m%x/mod=00=mod,rm=%a=rm>
++
+
+#
+# Building address modes
+#
+
+<m%x/mod=%a=mod,rm=%b=rm,ss=%c=ss,base=%d=base,index=%e=index,imm=%f=imm>
+=
+<m%x/mod=%a=mod,rm=%b=rm,sibetc=%c%e%d%f=sibetc>
++
+<m%x/mod=%a=mod,rm=%b=rm>
+=
+<m%x/mod=%a=mod,rm=%b=rm,sibetc==sibetc>
++
+
+#
+# Registers and small constants
+#
+
+<r32> %%%a
+=
+<r32/reg=%a--=reg>
++
+<r32> eax
+=
+<r32/reg=000=reg>
++
+<r32> ecx
+=
+<r32/reg=001=reg>
++
+<r32> edx
+=
+<r32/reg=010=reg>
++
+<r32> ebx
+=
+<r32/reg=011=reg>
++
+<r32> esp
+=
+<r32/reg=100=reg>
++
+<r32> ebp
+=
+<r32/reg=101=reg>
++
+<r32> esi
+=
+<r32/reg=110=reg>
++
+<r32> edi
+=
+<r32/reg=111=reg>
++
+<log2> 1
+=
+<log2/val=00=val>
++
+<log2> 2
+=
+<log2/val=01=val>
++
+<log2> 4
+=
+<log2/val=10=val>
++
+<log2> 8
+=
+<log2/val=11=val>
++
+
+#
+# Emit binary (comment this out for debugging)
+#
+
+<%a/bits=%b>
+=
+%b
++

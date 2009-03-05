@@ -1,0 +1,61 @@
+head	1.2;
+access;
+symbols;
+locks
+	engler:1.2; strict;
+comment	@ * @;
+
+
+1.2
+date	96.03.22.20.08.52;	author engler;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	96.03.22.18.26.04;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@v_uptr mk_and(void) {
+	v_reg_type arg[2];	/* Two arguments. */
+
+	/* Create and function that returns the result of anding its two unsigned inputs */
+        v_lambda("and", "%u%u", arg, V_LEAF, (void *)malloc(sizeof(v_code)*100));
+		v_andu(arg[0], arg[0], arg[1]); /* And the two arguments */
+		v_retu(arg[0]);			/* Return the result. */
+        return v_end().u;
+}
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 2
+a2 2
+#include <stdio.h>
+#include "vcode.h"		/* This header file defines all vcode insns. */
+d4 5
+a8 9
+int main(void) {
+	v_code insn[1000]; 	/* Memory to hold code in. */
+
+	/* Create a function to print standard greeting. */
+        v_lambda("hello-world", "", 0, V_NLEAF, insn);
+		/* Generate simple call to printf. */
+                v_scallv((void*)printf, "%P", "hello, world\n");
+        v_end().v(); 	/* Compile & call */
+	return 0;
+@

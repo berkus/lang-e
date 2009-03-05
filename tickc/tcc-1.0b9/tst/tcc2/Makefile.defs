@@ -1,0 +1,9 @@
+.PHONY: clean clean-all all
+
+VPATH = ../../src
+
+SRCS =	binary.tc cmp2.tc dp.tc dfa.tc \
+	hp2.tc hp2x.tc heap.tc heapx.tc \
+	hsh.tc ms.tc ms2.tc ntn.tc ntn1.tc \
+	pow.tc pow2.tc query.tc mshl2.tc
+BINS =	$(subst .tc,,$(SRCS))

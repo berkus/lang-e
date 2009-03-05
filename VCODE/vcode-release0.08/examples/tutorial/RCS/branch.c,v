@@ -1,0 +1,54 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.23.00.22.14;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include <stdio.h>
+#include "vcode.h"		/* This header file defines all vcode insns. */
+
+int main(void) {
+	v_code insn[1000]; 	/* Memory to hold code in. */
+	v_vptr vp;
+	v_reg_type x;
+
+        /* Test jump and link instruction */
+        v_lambda("jump-and-link", "%i", &x, V_NLEAF, insn);
+        {
+		v_label_type true, end;
+
+        	true = v_genlabel();    /* allocate two labels */
+        	end = v_genlabel();
+
+        	/* test whether x is equal to 5 */
+        	v_beqii(x, 5, true);
+                        v_scallv((void*)printf, "%P", "Arg is not equal to 5\n");
+                	v_jl(end);      /* jump over else */
+        	v_label(true);
+                        v_scallv((void*)printf, "%P", "Arg is equal to 5\n");
+        	v_label(end);
+		v_retv();
+        }
+        vp = v_end().v;
+	vp(5);          /* test */
+	vp(6);
+	return 0;
+}
+@

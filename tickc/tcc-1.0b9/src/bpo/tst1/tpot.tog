@@ -1,0 +1,29 @@
+mov $0,%a
+=
+clr %a
++
+
+add $0,%a
+=
++
+
+jeq %a
+jmp %b
+%a:
+=
+jne %b
+%a:
++
+
+add $%b,r%a
+mov *r%a,%c
+=
+mov %b(r%a),%c
+add $%b,r%a
++
+
+%b %c,r%d
+j%e
+=
+j%e
++

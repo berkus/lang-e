@@ -1,0 +1,28 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(vcode.md)
+
+AC_CONFIG_AUX_DIR(../../config)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_LN_S
+AC_PROG_INSTALL
+AC_PATH_PROG(AS, as)
+AC_PATH_PROG(LD, ld)
+AC_PATH_PROG(PERL, perl)
+AC_PATH_PROG(TAGS, etags)
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(limits.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS(strtod strtol)
+
+AC_OUTPUT(Makefile)

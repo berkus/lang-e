@@ -1,0 +1,38 @@
+0x140018f08     addq    a1, 0, t1
+0x140018f0c     bic     t1, 0x6, t3
+0x140018f10     ldq     t3, 0(t3)
+0x140018f14     bic     t1, 0x1, t1
+0x140018f18     extwl   t3, t1, t1
+0x140018f1c     addq    a1, 0x2, t2
+0x140018f20     bic     t2, 0x6, t3
+0x140018f24     ldq     t3, 0(t3)
+0x140018f28     bic     t2, 0x1, t2
+0x140018f2c     extwl   t3, t2, t2
+0x140018f30     sll     t1, 0x1, t3
+0x140018f34     addl    zero, t3, t3
+0x140018f38     addl    t3, t1, t1
+0x140018f3c     addq    a0, 0x4, a0
+0x140018f40     sll     t2, 0x1, t3
+0x140018f44     addl    zero, t3, t3
+0x140018f48     addl    t3, t2, t2
+0x140018f4c     lda     at, -4(zero)
+0x140018f50     addq    a0, at, t7
+0x140018f54     bic     t7, 0x6, t3
+0x140018f58     ldq     t6, 0(t3)
+0x140018f5c     bic     t7, 0x1, t7
+0x140018f60     inswl   t1, t7, a2
+0x140018f64     mskwl   t6, t7, t6
+0x140018f68     bis     t6, a2, t6
+0x140018f6c     stq     t6, 0(t3)
+0x140018f70     addq    a1, 0x4, a1
+0x140018f74     lda     at, -2(zero)
+0x140018f78     addq    a0, at, t7
+0x140018f7c     bic     t7, 0x6, t3
+0x140018f80     ldq     t6, 0(t3)
+0x140018f84     bic     t7, 0x1, t7
+0x140018f88     inswl   t2, t7, a2
+0x140018f8c     mskwl   t6, t7, t6
+0x140018f90     bis     t6, a2, t6
+0x140018f94     stq     t6, 0(t3)
+0x140018f98     cmpult  a1, t0, at
+0x140018f9c     bne     at, 0x140018f08

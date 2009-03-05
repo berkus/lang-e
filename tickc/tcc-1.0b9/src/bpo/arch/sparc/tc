@@ -1,0 +1,105 @@
+mov r29, r16
+sll r16, 0000000000010, r16
+add r16, r17, r16
+
+
+./hsh -data 0 -runs 1 -compiles 1 -dump (y|n|e|a)? yes
+## hsh ##
+        0a88b0: 09de3bea8       save %sp, -344, %sp
+#        0a88b4: 0b8100018       mov %i0, %i4
+#        0a88b8: 082102011       mov 17, %g1
+#        0a88bc: 09010001c       mov %i4, %o0
+#        0a88c0: 092100001       mov %g1, %o1
+        0a88c4: 07ffe1305       call 0x0002d4d8
+        0a88c8: 01000000        nop
+#        0a88cc: 0b8100008       mov %o0, %i4
+#        0a88d0: 082102005       mov 5, %g1
+#        0a88d4: 09010001c       mov %i4, %o0
+#        0a88d8: 092100001       mov %g1, %o1
+        0a88dc: 07ffe130b       call 0x0002d508
+        0a88e0: 01000000        nop
+        0a88e4: 0b8100008       mov %o0, %i4
+        0a88e8: 0b80f201f       and %i4, 31, %i4
+        0a88ec: 0b92f2002       sll %i4, 2, %i4
+        0a88f0: 030001e1        sethi %hi(0x78400) %g1
+        0a88f4: 0821067e8       or %g1, 2024, %g1
+        0a88f8: 0fa070001       ld [%i4 + %g1], %i5
+        0a88fc: 010800004       ba 0x000a890c
+        0a8900: 0b810001d       mov %i5, %i4
+        0a8904: 0fa076004       ld [%i5 + 4], %i5
+#        0a8908: 0b810001d       mov %i5, %i4
+#        0a890c: 080a72000       cmp %i4, 0
+        0a8910: 022800008       be,a 0x000a8930
+        0a8914: 0b610001d       mov %i5, %i3
+        0a8918: 0f800001d       ld [%g0 + %i5], %i4
+#        0a891c: 0b6100018       mov %i0, %i3
+#        0a8920: 080a7001b       cmp %i4, %i3
+        0a8924: 032bffff9       bne,a 0x000a8908
+        0a8928: 0fa076004       ld [%i5 + 4], %i5
+#        0a892c: 0b610001d       mov %i5, %i3
+#        0a8930: 0b010001b       mov %i3, %i0
+        0a8934: 081c7e008       jmpl [%i7 + 8], %g0
+        0a8938: 081e80000       restore %g0, %g0, %g0
+        0a893c: 081c7e008       jmpl [%i7 + 8], %g0
+        0a8940: 081e80000       restore %g0, %g0, %g0                          
+
+./cmp2 -data 2 -runs 1 -compiles 1 -dump
+## cmp2 ##
+        0ac8f0: 09de3bea8       save %sp, -344, %sp
+#        0ac8f4: 0a0102000       mov 0, %l0
+#        0ac8f8: 0b6100010       mov %l0, %i3
+#        0ac8fc: 0a0102000       mov 0, %l0
+#        0ac900: 0b8100010       mov %l0, %i4
+#        0ac904: 0a0102000       mov 0, %l0
+#        0ac908: 0ba100010       mov %l0, %i5
+        0ac90c: 010800024       ba 0x000ac99c
+        0ac910: 0a410001d       mov %i5, %l2
+
+        0ac914: 0a010001d       mov %i5, %l0
+        0ac918: 0a12c2002       sll %l0, 2, %l0
+
+#        0ac91c: 0a2100019       mov %i1, %l1
+#        0ac920: 0e0040011       ld [%l0 + %l1], %l0
+#        0ac924: 0b8100010       mov %l0, %i4
+
+#        0ac928: 0a010001b       mov %i3, %l0
+#        0ac92c: 0a210001c       mov %i4, %l1
+#        0ac930: 0a0040011       add %l0, %l1, %l0
+#        0ac934: 0b6100010       mov %l0, %i3
+
+        0ac938: 0a010001c       mov %i4, %l0
+        0ac93c: 0a32c2018       sll %l0, 24, %l1
+        0ac940: 0300003f        sethi %hi(0xfc00) %g1
+        0ac944: 082106700       or %g1, 1792, %g1
+        0ac948: 0a40c0001       and %l0, %g1, %l2
+        0ac94c: 0a52ca008       sll %l2, 8, %l2
+        0ac950: 0a2144012       or %l1, %l2, %l1
+        0ac954: 0a5342008       srl %l0, 8, %l2
+        0ac958: 0300003f        sethi %hi(0xfc00) %g1
+        0ac95c: 082106700       or %g1, 1792, %g1
+        0ac960: 0a40c8001       and %l2, %g1, %l2
+        0ac964: 0a2144012       or %l1, %l2, %l1
+        0ac968: 0a1342018       srl %l0, 24, %l0
+        0ac96c: 0a00c20ff       and %l0, 255, %l0
+        0ac970: 0a0144010       or %l1, %l0, %l0
+
+        0ac974: 0b8100010       mov %l0, %i4
+
+*        0ac978: 0a010001d       mov %i5, %l0
+*        0ac97c: 0a12c2002       sll %l0, 2, %l0
+
+#        0ac980: 0a210001a       mov %i2, %l1
+#        0ac984: 0a410001c       mov %i4, %l2
+#        0ac988: 0e4240011       st %l2, [%l0 + %l1]
+
+#        0ac98c: 0a410001d       mov %i5, %l2
+#        0ac990: 0a404a001       inc %l2
+#        0ac994: 0ba100012       mov %l2, %i5
+
+#        0ac998: 0a410001d       mov %i5, %l2
+#        0ac99c: 0a2100018       mov %i0, %l1
+#        0ac9a0: 080a48011       cmp %l2, %l1
+        0ac9a4: 026bfffdd       bl,a 0x000ac918
+        0ac9a8: 0a010001d       mov %i5, %l0
+        0ac9ac: 081c7e008       jmpl [%i7 + 8], %g0
+        0ac9b0: 081e80000       restore %g0, %g0, %g0

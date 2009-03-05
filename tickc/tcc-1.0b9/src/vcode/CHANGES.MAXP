@@ -1,0 +1,62 @@
+* removed v_nop's from v_ccall[ifd]: this is better left to the arch-bin file
+* support for machines with >32 registers per bank
+* machine description etc. for simplescalar
+* made everything strictly ansi
+* added rccall
+* fixed bug in definition of v_jl in sparc.md
+* fixed bug in definition of v_jal in alpha.md
+* changed v_local alignment on subword blocks (dawson)
+* removed v_unlock from inside demand() in mips-gen.c
+* added __fast__ option, changing all references to struct v_reg and v_label to
+  references to v_reg_type and v_label_type respectively
+* added typed rccalls (rccalli, rccallu, etc.), otherwise return registers get
+  are wrong in the fp case, and we get bogus results.
+* in sparc-gen.c:
+	#if 0
+			case V_UC: 	v_lduci((*args), v_fp, offset); break;
+			case V_C: 	v_ldci((*args), v_fp, offset); break;
+			case V_US: 	v_ldusi((*args), v_fp, offset); break;
+			case V_S: 	v_ldsi((*args), v_fp, offset); break;
+	#endif
+			case V_C: case V_UC:
+			case V_S: case V_US:
+  otherwise args passed on stack do not get loaded into registers correctly.
+
+* changed bpp to not require shipping binaries with the sources
+* changed makefile/config.h naming scheme to be arch-os (so top-level tcc
+  configure script has a hope of working)
+
+* bug fix in mult.c
+
+* v_rccallr needs to insert some delay slots (like v_ccall), or else the result
+  of the function call gets trashed.  I changed sparc-bin as follows:
+   #define call_reg(r) jmpl(_o7, r, 0)
+  becomes 
+   #define call_reg(r) do { jmpl(_o7, r, 0); nop(); } while (0)
+
+* in vcode/vcode.h:
+    #else /* __fast__ */
+            /* Label type. */
+            typedef unsigned short v_label_type;
+    >>>     typedef v_label_type v_label_t;
+            /* V_Label_Reference_Pointer */
+    #       define _vlrp(l) (*(l))
+            /* V_Label_Reference */
+    #       define _vlr(l) (l)
+    #else /* __fast__ */
+            typedef unsigned v_reg_type;
+    >>>     typedef v_reg_type v_reg_t;
+            /* V_Reg_type_Reference_Pointer */
+    #       define _vrrp(r) (*(r))
+
+* in vcode/sparc-gen.c:
+    #define ARG_OFFSET      (WINDOW_SIZE + INCOMING_SIZE + HIDDEN_PARAM) 
+    >>>#define GP_SAVE_OFFSET  (ARG_OFFSET + ARGBUILDSIZE)
+    >>>#define FP_SAVE_OFFSET       (GP_SAVE_OFFSET+RSAVESIZE+4)
+    #define LOCAL_OFFSET    (FSAVESIZE + RSAVESIZE)
+
+* in vcode/sparc-bin:
+    (put _ before ra)
+    #define jmpi(addr) { jmpl(_g0, _ra, (unsigned)addr); }
+
+* a few random changes I no longer remember...

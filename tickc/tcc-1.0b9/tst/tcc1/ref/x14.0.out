@@ -1,0 +1,10 @@
+EXPECT: 10
+10
+EXPECT: abcdef
+abcdef
+EXPECT: abcdef
+abcdef
+EXPECT: 15
+15
+EXPECT: 15.0
+1.500000e+01

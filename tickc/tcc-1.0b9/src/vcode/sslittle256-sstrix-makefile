@@ -1,0 +1,57 @@
+ifeq ($(SSCC),)
+SSCC=ssgcc
+SSAR=ssar
+SSRANLIB=ssranlib
+endif
+CC=$(SSCC)
+BPOCFLAGS=-D__VCODE__
+BPOOBJS=../bpo/bpo-sslittle256-sstrix.o
+ifeq ($(MODE),optimize)
+CFLAGS1= -O3 -DNDEBUG -fpcc-struct-return -ansi -pedantic -Wall
+else
+CFLAGS1= -O -ggdb -fpcc-struct-return -ansi -pedantic -Wall
+endif
+SPECFLAGS= fast
+CFLAGS= $(CFLAGS1) $(BPOCFLAGS) -I$(includedir)/tickc \
+	-D__SIMPLE_SCALAR__ -D__SSEL__
+LIBS=
+VARCH=ss
+TST=tst
+HDRS=vcode-macros.h vcode.h binary.h
+VOBJS= link.o ss-gen.o gen.o multireg.o xlate.o call.o poly-insns.o fp-imm.o mult.o ssflush.o
+VSRC= $(VOBJS:.o=.c);
+
+all: binary.h vcode-macros.h vcode.lib.a 
+
+vcode.lib.a: $(BPOOBJS) $(VOBJS) $(HDRS)
+	$(SSAR) ruv vcode.lib.a $(BPOOBJS) $(VOBJS)
+	$(SSRANLIB) vcode.lib.a
+
+binary.h: gen-ss.pl
+	perl gen-ss.pl < ss.def > binary.h
+
+vcode-macros.h: binary.h $(VARCH).md spec.pl
+	perl spec.pl fast < $(VARCH).md > vcode-macros.h
+
+ssflush.o: ssflush.c
+	$(CC) -Wall -O0 -c $<
+
+$(VARCH)-gen.c: $(HDRS)
+gen.c: $(HDRS)
+
+multireg.c: $(includedir)/tickc/bv.h $(includedir)/tickc/mem.h
+
+# code for cmul
+CMUL = 4096
+mult.h: booth-gen
+	./booth-gen $(CMUL) > mult.h
+booth-gen: booth-gen.c
+	gcc $(CFLAGS) -o booth-gen booth-gen.c
+
+depend:
+	makedepend $(VSRC)
+
+clean:
+	rm -f *.o core vcode.lib.a *.Counts *.pixie *.Addrs vcode-macros.h binary.h
+
+mult.o: mult.c mult.h vcode.h

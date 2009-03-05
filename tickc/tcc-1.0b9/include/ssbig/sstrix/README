@@ -1,0 +1,4 @@
+stdarg.real.h comes from include/mips/irix/stdarg.h or lcc.
+All other include files in this directory are take from include/mips/ultrix, in
+this include hierarchy.
+See the README file in include/mips/ultrix for more information.

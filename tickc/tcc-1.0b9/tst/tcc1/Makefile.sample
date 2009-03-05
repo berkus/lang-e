@@ -1,0 +1,27 @@
+BINS	=	x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17
+CC	=	tcc
+
+all: setup tests run
+
+setup:
+	@rm -f *.h; ln -s src/*.h .
+
+tests:
+	perl ../gen-tests.pl src/test.c x
+
+run:
+	perl ../regress.pl -v < src/regress-ic.in
+
+clean:
+	rm -f *.[iso] *.s.* x*c.c *.out *.err core *~
+
+clean-all: clean
+	rm -f $(BINS) x*.c
+
+%: %.tc
+	$(CC) $(CFLAGS) -o $@ $^
+%: %.c
+	$(CC) $(CFLAGS) -o $@ $^
+
+%: %.o
+	$(CC) $(CFLAGS) -o $@ $^

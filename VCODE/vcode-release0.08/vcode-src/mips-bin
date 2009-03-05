@@ -1,0 +1,441 @@
+#ifndef __BINARY_H__
+#define __BINARY_H__
+#include <assert.h>
+#include "demand.h"
+
+#define NOP 0x0
+
+enum { EQF = 062, LTF = 074, LEF = 076 }; /* fp branch  condition_codes */
+
+#define IMM(x)          ((x) & 0xffff)
+
+#define ITYPE(_op,_d,_s,_imm) \
+        emitn(OP(_op)|RD1(_d)|RS1(_s)|IMM(((unsigned)(short)_imm)))
+#define JTYPE(_op,_target)   \
+        emitn(OP(_op) | (_target))
+#define STYPE(_op,_d,_s1,_s2) \
+        emitn(RS(_s1) | RT(_s2) | RD(_d) | _op)
+#define COP1(fmt,rs1,rs2,rd,bin) \
+        emitn(COP1op|FMT(fmt)|FT(rs2)|FS(rs1)|FD(rd)|bin)
+
+#define mfc1(rt, rs) (*v_ip++ = COP1op|MF(00)|RT(rt)|FS(rs))
+#define mtc1(rs, rt) (*v_ip++ = COP1op|MF(04)|RT(rt)|FS(rs))
+#define cfc1(rt, rs) (*v_ip++ = COP1op|MF(02)|RT(rt)|FS(rs))
+#define ctc1(rt, rs) (*v_ip++ = COP1op|MF(06)|RT(rt)|FS(rs))
+
+/* M4 specifications */
+define(`ITER_BY_2', `ifelse($#, 0, ,$#, 2,
+        `__foo($@)',
+        `__foo($@) ITER_BY_2(shift(shift($@)))')')
+define(`ITER_BY_3', `ifelse($#, 0, ,$#, 3,
+        `__foo($@)',
+        `__foo($@) ITER_BY_3(shift(shift(shift($@))))')')
+define(`ITER_BY_4', `ifelse($#, 0, ,$#, 4,
+        `__foo($@)',
+        `__foo($@) ITER_BY_4(shift(shift(shift(shift($@)))))')')
+define(`ITER_BY_6', `ifelse($#, 0, ,$#, 6,
+        `__foo($@)',
+        `__foo($@) ITER_BY_6(shift(shift(shift(shift(shift(shift($@)))))))')')
+
+define(`DEFF', `pushdef(`__foo', defn(`$1'))
+        $2(shift(shift($@)))
+        popdef(`__foo')')
+
+define(`emit_field', `format(` 
+#define	%s(x)	((x)<<%d)
+',$1,$2)')
+
+define(`emit_def', `format(`
+#define	%s	%s
+',$1,$2)')
+
+define(`emit_stmt', `format(`
+#define	%s	do { %s; } while(0)
+',$1,$2)')
+
+define(`emit_mem', `format(`
+#define %s(dst, src1, offset) do	{			\
+	unsigned _rs1 = (src1), _rd = (dst);			\
+	int _off = (offset);					\
+        if(!is16bit(_off)) {					\
+		unsigned hi;					\
+		/* see c-3 */					\
+		hi = hi(_off);					\
+		if(_off & 0x8000)				\
+		   hi++;					\
+		_off = lo(_off);				\
+		lui(_at, hi);					\
+		/* adjust */					\
+		if(_rs1 != _zero) 				\
+                	addu(_at, _at, _rs1);			\
+                _rs1 = _at; 					\
+        }							\
+	ITYPE(0x%x, _rd, _rs1, _off);				\
+} while(0)
+', $1, eval($2))')
+
+define(`emit_alu_im', `format(`
+#define	%s(dst, src1, src2) STYPE(0x%x, dst, src1, src2)
+
+#define %s(a, b, c) do	{					\
+	unsigned _dst = (a), _src1 = (b), _src2 = (c);		\
+        if(%s(_src2))						\
+		ITYPE(0x%x, _dst, _src1, _src2);		\
+	else {							\
+                %s(_at, _src2);					\
+		%s(_dst, _src1, _at);				\
+        }							\
+} while(0)
+', $1, eval($2), $3, __check, eval($4), __set, $1)')
+
+define(`emit_alu', `format(`
+#define	%s(dst, src1, src2) STYPE(0x%x, dst, src1, src2)
+',$1, eval($2))')
+
+define(`emit_alu2', `format(`
+#define	%s(dst, src1, src2) STYPE(0x%x, dst, src2, src1)
+',$1, eval($2))')
+
+/* need to check back for mfhi or mflo */
+define(`emit_c0', `format(`
+#define	%s(src1, src2) STYPE(0x%x, 0, src1, src2)
+',$1, eval($2))')
+
+define(`emit_logical', `format(`
+#define	%s(d, s1, s2)	emitn(RT(s1)|RD(d)|((s2)<<6)|0x%x)
+', $1, eval($2))')
+
+define(`emit_branch0', `format(`
+#define %s(a, b, name) 	do { v_bmark(v_ip, name); ITYPE(0x%x, b, a, 0); nop(); } while(0)
+', $1, eval($2))')
+define(`emit_branch1', `format(`
+#define %s(a, name) 	do { v_bmark(v_ip, name); ITYPE(0x%x, a, 0, 0); nop(); } while(0)
+', $1, eval($2))')
+define(`emit_branch2', `format(`
+#define %s(a, name) do { v_bmark(v_ip, name); ITYPE(0x1, 0%x, a, 0); nop(); } while(0)
+', $1, eval($2))')
+
+define(`emit_ufp', `format(`
+#define	%s(d, s)	COP1(%s, s, 0, d, 0x%x)
+', $1, $3, eval($2))')
+
+define(`emit_bfp', `format(`
+#define	%s(d, s2, s1)	COP1(%s, s2, s1, d, 0x%x)
+', $1, $3, eval($2))')
+
+
+DEFF(	`emit_field',	`ITER_BY_2',
+	OP, 26, RS, 21, RT, 16, RD, 11, FUNCTION, 0, FMT, 21,
+     	BC, 21, BCF, 16, MF, 21, FT, 16, FS, 11, FD, 6)
+
+DEFF( `emit_def',	`ITER_BY_2',
+	S, 16, D, 17, W, 20, J, 002, JAL, 003, JR, 010, BNE, 0x5, BEQ, 0x4)
+
+DEFF( `emit_def',	`ITER_BY_2',
+	RS1, RS,
+	RS2, RT,
+	RD2, RD,
+	RD1, RT,
+	ls,	lwc1,
+	ss,	swc1)
+
+DEFF(	`emit_mem', `ITER_BY_2',
+        lb, 	0b100000, 	sb,     0b101000,
+	lbu,	0b100100, 
+	sh,     0b101001, 	lh, 	0b100001,
+	lhu,	0b100101,
+	lw, 	0b100011, 	sw, 	0b101011,
+	lwr,	0b100110, 	swr,	0b101110,
+	lwl,	0b100010, 	swl,	0b101010,
+	ldl,	0b011010,	sdl,	0b101100,
+	ldr,	0b011011,	slr,	0b101101,
+	lwu,	0b100111,
+	lwc1,	0b110001, 	swc1,	0b111001)
+
+DEFF(	`emit_alu',	`ITER_BY_2',
+	sub,	0b100010,	subu,	0b100011,
+	dsub,	0b101110,	dsubu,	0b101111,	
+	movn,	0b001011,	movz, 	0b001010,
+	nor,	0b100111)
+
+DEFF(	`emit_alu2',	`ITER_BY_2',
+	sllv, 	0b000100,  	dsllv,	0b010100,	
+	srlv,	0b000110, 	dsrlv,	0b010110,
+	srav,	0b000111, 	dsrav,	0b010111)
+
+DEFF(	`emit_c0',	`ITER_BY_2',
+  	mult, 	0b011000, 	multu, 	0b011001,
+	dmult,	0b011100,	dmultu,	0b011101,
+ 	div, 	0b011010, 	divu, 	0b011011,
+	ddiv,	0b011110,	ddivu,	0b011111,
+	rem,	0b011010, 	remu,	0b011011)
+
+define(ALU_IM,	`
+	pushdef(`__check', `$1') pushdef(`__set', `$2')
+	DEFF(`emit_alu_im', `ITER_BY_4', shift(shift($@)))
+	popdef(`__check')popdef(`__set')')
+
+ALU_IM(	is16bit, noc_set,
+        add, 	0b100000, 	addi, 	0b001000, 	
+	addu, 	0b100001, 	addiu, 	0b001001,
+     	slt, 	0b101010, 	slti, 	0b001010,
+    	sltu, 	0b101011, 	sltiu, 	0b001011,
+	dadd,	0b101100,	daddi,	0b011000, 	
+	daddu,	0b101101,	daddiu,	0b011001)
+
+define(`emit_noc', `format(`
+#define %s(a, b, c) ITYPE(0x%x, a, b, c)
+',$1,eval($2))')
+	
+DEFF( `emit_noc', `ITER_BY_2',
+	noc_andi,	0b001100,
+	noc_addiu,	0b001001,
+   	noc_ori,	0b001101)
+
+ALU_IM(isu16bit, noc_setu,
+   	and, 	0b100100,	andi,	0b001100,
+    	or, 	0b100101,	ori,	0b001101,
+   	xor,	0b100110,	xori,	0b001110)
+
+DEFF(`emit_logical', `ITER_BY_2',
+	dsll32,	0b111100,
+	dsra32,	0b111111,
+	dsrl32,	0b111110,
+	sra, 	0b000011, 	dsra,	0b111011,
+	sll,	0b000000, 	dsll,	0b111000,
+ 	srl,	0b000010, 	dsrl,	0b111010)
+
+DEFF(`emit_branch1', `ITER_BY_2',
+       	bgtz, 	0b000111,	bgtzl,	0b010111,
+  	blez, 	0b000110,	blezl,	0b010110)
+
+DEFF(`emit_branch0', `ITER_BY_2',
+	beq, 	0b000100,	beql,	0b010100,
+	bne,	0b000101,	bnel,	0b010101)
+
+DEFF(`emit_branch2',  `ITER_BY_2',
+	bltz,	0b00001,	bltzl,		0b00010,
+	bltzal,	0b10000,	bltzall,	0b10010,
+   	bgez,	0b00001,	bgezl,		0b00011,		
+	bgezal,	0b10001, 	bgezall,	0b10011)
+
+DEFF(`emit_ufp',	`ITER_BY_3',
+        fnegd, 	0b000111,	D, 	fnegs,	0b000111,	S,
+	fmovd, 	0b000110,	D, 	fmovs, 	0b000110,	S, 	
+	cvtwd, 	0b100100,	D, 	cvtws, 	0b100100,	S,
+ 	cvtsd, 	0b100000,	D, 	cvtsw, 	0b100000,	W,
+ 	truncwd,0b001101,	D, 	truncws,0b001101,	S,
+	cvtds, 	0b100001,	S, 	cvtdw, 	0b100001,	W,
+	ceild,	0b001110,	D, 	ceils,	0b001110,	S,
+	floord,	0b001111,	D, 	floors,	0b001111,	S,
+	fabs,	0b000101,	S, 	fabd,	0b000101,	D,
+	fsqrts,	0b000100,	S, 	fsqrtd,	0b000100,	D)
+	
+DEFF( `emit_bfp',	`ITER_BY_3',
+	faddd, 	0b000000,	D, 	fadds, 	0b000000,	S,
+   	fsubd, 	0b000001,	D, 	fsubs, 	0b000001,	S,
+ 	fmuld, 	0b000010,	D, 	fmuls, 	0b000010,	S,
+  	fdivd, 	0b000011,	D,	fdivs, 	0b000011,	S)
+
+define(`emit_branch4', `format(`
+#define	%s(a, b, name) do {		\
+	if(b == _r0) 	 %s;		\
+	else if(a == _r0) %s;		\
+	else { %s }			\
+} while(0)
+
+#define %s(a, b, name) do {	\
+	if(b == 0) %s;	\
+	else { %s }		\
+} while(0)
+', $1, $3, $4, $5, $2, $3, $6)')
+
+DEFF( `emit_branch4', `ITER_BY_6',
+	blt,	blti,
+		`bltz(a,name)',
+		`bgez(b,name)',
+		`slt(_at, a, b); bne(_at, _r0, name);',
+		`slti(_at, a, b); bne(_at, _r0, name);',
+	ble,	blei,
+	 	`blez(a,name)',
+		`bgtz(b,name)',
+		`slt(_at, b, a); beq(_at, _r0, name);',
+		`blti(a,(b+1),name);',
+	bgt,	 bgti,
+		`bgtz(a,name)',
+		`blez(b,name)',
+		`slt(_at, b, a);  bne(_at, _r0, name);',
+		`bgei(a,(b+1),name);',
+	bge,	bgei,
+		`bgez(a,name)',
+		`bltz(b,name)',
+		`slt(_at, a, b);  beq(_at, _r0, name);',
+		`slti(_at, a, b); beq(_at, _r0, name);',
+	bltu,   bltui,
+		`demand(0, lt zero always false)',
+		`bne(b, _r0, name)',
+		`sltu(_at, a, b); bne(_at, _r0, name);',
+		`sltiu(_at, a, b); bne(_at, _r0, name);',
+	bleu,   bleui,
+		`beq(a, _r0, name)',
+		`demand(0, gte zero always true)',
+		`sltu(_at, b, a); beq(_at, _r0, name);',
+		`bltui(a,(b+1),name);',
+	bgtu,	bgtui,
+		`bne(a, _r0, name)',
+		`demand(0, lt zero always true)',
+		`sltu(_at, b, a); bne(_at, _r0, name);',
+		`bgeui(a,(b+1),name);',
+	bgeu,	bgeui,
+		`demand(0, gte zero always true)',
+		`beq(b, 0, name)',
+		`sltu(_at, a, b); beq(_at, _r0, name);',
+		`sltiu(_at,a,b); beq(_at, _r0, name);')
+
+#define j(_t) do {				\
+        unsigned mask, val, t;			\
+	void *x = (void*)_t;			\
+	t = (unsigned)x;			\
+        /* Need lower 26 bits */ 		\
+        mask = ((~0U << 4) >> 4);		\
+        val = (mask & t);			\
+	/* fits. */				\
+        if((t & ~mask) == (~mask & (unsigned)v_ip)) 	\
+		JTYPE(002, ((unsigned)val>>2));		\
+	else {						\
+		setu(_at, t);				\
+		jr(_at);				\
+	}						\
+} while(0)
+
+DEFF( `emit_def',	`ITER_BY_2',
+	`mflo(d)',		`(emitn(RD(d)|022))',
+	`mfhi(d)',		`(emitn(RD(d)|020))',
+	`hi(x)',		`(((unsigned)(x)) >> 16)',
+	`lo(x)',		`(((unsigned)(x)) & 0xffff)',
+	`emitn(u)',		`(*v_ip++ = (u))',
+	`lui(d, s)', 		`ITYPE(15, d, _r0, s)',
+	`jalr(rs, rt)',		`STYPE(011, rt, rs, 0)',
+	`jr(rs)',		`STYPE(010, 0, rs, 0)',
+	`COP1op',		`(021<<26)')
+
+DEFF( `emit_stmt',	`ITER_BY_2',
+	`mov(d, s)', 	`if((d)!=(s))addu(d, s, _r0)',
+	`nop()',	`emitn(0x0)',
+	`not(d, s)', 	`sltiu(d, s, 1)',
+	`neg(d, s)', 	`sub(d, _r0, s)',
+	`com(d, s)',	`nor(d, _r0, s)',
+	`subi(d, s1, s2)',	`addiu(d, s1, (-s2))',
+	`subui(d, s1, s2)',	`addiu(d, s1, (-s2))',
+	`beqi(rs, im, l)',	`if(!im) beq(rs, _r0, l); 		\
+				 else { set(_at, im); beq(rs, _at, l); }',
+	`bnei(rs, im, l)',	`if(!im) bne(rs, _r0, l); 		\
+				 else { set(_at, im); bne(rs, _at, l); }')
+
+#define movi2f(dst, src) mtc1(dst, src)
+#define movf2i(dst, src) mfc1(dst, src)
+
+/* loads happen in a different order. */
+#ifdef SGI
+#	define ld(d, s, im) do { lwc1((d+1),s,im);lwc1(d,s,im+4); } while(0)
+#	define sd(d, s, im) do { swc1((d+1),s,im);swc1(d,s,im+4); } while(0)
+
+#	define movi2d(dst, src) do {                   \
+        	unsigned _src = src, _dst = dst;        \
+        	mtc1(_dst+1, _src);                     \
+        	mtc1(_dst, _src+1);                     \
+	} while(0)
+
+#	define movd2i(dst, src) do {                   \
+        	unsigned _src = src, _dst = dst;        \
+        	mfc1(_dst, _src+1);                     \
+        	mfc1(_dst+1, _src);                     \
+	} while(0)
+
+#else
+#	define ld(d, s, im) do { lwc1(d,s,im);lwc1((d+1),s,im+4); } while(0)
+#	define sd(d, s, im) do { swc1(d,s,im);swc1(d+1,s,im+4); } while(0)
+
+#	define movi2d(dst, src) do {                   \
+        	unsigned _src = src, _dst = dst;        \
+        	mtc1(_dst, _src);                       \
+        	mtc1(_dst+1, _src+1);                   \
+	} while(0)
+
+#	define movd2i(dst, src) do {                   \
+        	unsigned _src = src, _dst = dst;        \
+        	mfc1(_dst, _src);                       \
+        	mfc1(_dst+1, _src+1);                   \
+	} while(0)
+#endif
+
+
+#define jal(t) do {					\
+	unsigned _t = (unsigned)t;			\
+        if((_t >> 28) == ((unsigned)v_ip >> 28))		\
+                JTYPE(003, (_t >>2));			\
+        else {						\
+                setu(_at, _t);				\
+                jalr(_at, _ra);				\
+        }						\
+} while(0)
+
+#define is16bit(imm)    ((int)(imm) < 0x7fff && (int)(imm) >= -0x7fff)
+#define isu16bit(imm)   ((unsigned)(imm) <= 0xffff)
+
+#define noc_setu 	noc_set
+#define noc_set(dst, simm) do {			\
+	int sim = simm;				\
+	lui(dst, hi(sim));			\
+        if(lo(sim)) 				\
+                noc_ori(dst, dst, lo(sim));	\
+} while(0)
+
+#define set(dst, simm) 	do {			\
+	int sim = simm;				\
+        if(is16bit(sim)) {			\
+		noc_addiu(dst, _r0, sim);	\
+	} else {				\
+		lui(dst, hi(sim));		\
+        	if(lo(sim)) 			\
+                	noc_ori(dst, dst, lo(sim));\
+        }					\
+} while(0)
+
+#define setu(dst, im) do {				\
+	unsigned uim = im;				\
+        if(isu16bit(uim)) {				\
+		 noc_ori(dst, _r0, uim);		\
+	} else {					\
+                lui(dst, hi(uim));			\
+        	if(lo(uim)) 				\
+                	noc_ori(dst, dst, lo(uim));	\
+        }						\
+} while(0)
+
+/* float conditionals -- disp is zero (unresolved) */
+#define fcmp(fmt, src1, src2, name, cmp, code) do {                     \
+                COP1(fmt,src1,src2,0,code);                             \
+                nop();                                                  \
+                v_bmark(v_ip, name);                                    \
+                cmp(0);                                                 \
+                nop();                                                  \
+} while(0)
+
+#define bc1f(offset) (*v_ip++ = COP1op|BC(010)|BCF(0)|offset)
+#define bc1t(offset) (*v_ip++ = COP1op|BC(010)|BCF(1)|offset)
+
+#define feqs(a, b, name)	fcmp(S, a, b, name, bc1t, EQF)
+#define feqd(a, b, name)	fcmp(D, a, b, name, bc1t, EQF)
+#define fnes(a, b, name)	fcmp(S, a, b, name, bc1f, EQF)
+#define fned(a, b, name)	fcmp(D, a, b, name, bc1f, EQF)
+#define flts(a, b, name)	fcmp(S, a, b, name, bc1t, LTF)
+#define fltd(a, b, name)	fcmp(D, a, b, name, bc1t, LTF)
+#define fges(a, b, name)	fcmp(S, a, b, name, bc1f, LTF)
+#define fged(a, b, name)	fcmp(D, a, b, name, bc1f, LTF)
+#define fles(a, b, name)	fcmp(S, a, b, name, bc1t, LEF)
+#define fled(a, b, name)	fcmp(D, a, b, name, bc1t, LEF)
+#define fgts(a, b, name)	fcmp(S, a, b, name, bc1f, LEF)
+#define fgtd(a, b, name)	fcmp(D, a, b, name, bc1f, LEF)
+
+#endif /* __BINARY_H__ */

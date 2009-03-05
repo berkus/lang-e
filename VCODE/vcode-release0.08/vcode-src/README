@@ -1,0 +1,33 @@
+Before compilation copy either the pair:
+
+	sparc-makefile -> makefile
+	sparc-config.h -> vcode-config.h
+
+Or
+	mips-makefile -> makefile
+	mips-config.h -> vcode-config.h
+
+Or
+	sgi-makefile -> makefile
+	sgi-config.h -> vcode-config.h
+
+Or
+
+	alpha-makefile -> makefile
+	alpha-config.h -> vcode-config.h
+
+Depending on whether the target is a alpha, mips or sparc.  Then do
+a `make clean', followed by a `make depend' and then `make'.
+If the make process depends on ``bpp'', then you will have to 
+manually recompile it (cd into ./bin/bpp to do this). 
+
+Then make should compile everything.  A large regression test is
+in ../tests.  Compile and run it to make sure that everything is
+ok.  If the regression test fails it will print out disassembled
+code; otherwise it simply prints out a bunch of random numbers.
+
+I haven't tried this source on an IRIX.  
+
+`grep define vcode-macros` will give all vcode macros for
+generating code.  these macros are a subset of those described
+in the tutorial.

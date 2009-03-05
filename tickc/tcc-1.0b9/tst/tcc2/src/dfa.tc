@@ -1,0 +1,160 @@
+#include <assert.h>
+#include "benchmark.h"
+
+typedef struct {
+     int n;			/* State number (initial state has n=0) */
+     int finalp;		/* Is this a final state */
+				/* I/O/Next info: on input in[k] produce output
+				   out[k] and go to state number next[k] */
+     char *in;
+     char *out;
+     int *next;
+} ss, *state_t;
+
+typedef struct {
+     int n_states;		/* Number of states */
+     state_t *states;		/* Description of each state */
+} ds, *dfa_t;
+
+#if 0
+int s0n[] = { 1,1,1,1 };
+int s1n[] = { 2,2,2,2 };
+int s2n[] = { 3,3,3,3 };
+int s3n[] = { 4,4,4,4 };
+ss s0 = { 0, 0, "WwAa", "LlEe", s0n };
+ss s1 = { 1, 0, "XxBb", "MmFf", s1n };
+ss s2 = { 2, 0, "YyCc", "NnGg", s2n };
+ss s3 = { 3, 0, "ZzDd", "OoHh", s3n };
+ss s4 = { 4, 1, "", "", 0 };
+#endif
+#if 0
+int s0n[] = { 1 };
+int s1n[] = { 2 };
+int s2n[] = { 3 };
+int s3n[] = { 4 };
+ss s0 = { 0, 0, "a", "e", s0n };
+ss s1 = { 1, 0, "b", "f", s1n };
+ss s2 = { 2, 0, "c", "g", s2n };
+ss s3 = { 3, 0, "d", "h", s3n };
+ss s4 = { 4, 1, "", "", 0 };
+state_t d0s[] = { &s0, &s1, &s2, &s3, &s4 };
+ds d0 = { 5, d0s };
+#endif
+int s0n[] = { 1,3 };
+int s1n[] = { 1,2,3 };
+int s2n[] = { 2,5 };
+int s3n[] = { 1,2,4 };
+int s4n[] = { 3 };
+int s5n[] = { 2,5 };
+ss s0 = { 0, 0, "ab", "zy", s0n };
+ss s1 = { 1, 0, "cif", "xru", s1n };
+ss s2 = { 2, 1, "jk", "qp", s2n };
+ss s3 = { 3, 0, "ghd", "tsw", s3n };
+ss s4 = { 4, 0, "e", "v", s4n };
+ss s5 = { 5, 0, "lm", "on", s5n };
+state_t d0s[] = { &s0, &s1, &s2, &s3, &s4, &s5 };
+ds d0 = { 6, d0s };
+
+int (*mk_dfa(dfa_t dfa))(char *in, char *out) {
+     char * vspec in = param(char *, 0);
+     char * vspec out = param(char *, 1);
+     char vspec t = local(char);
+     void cspec * labels = (void cspec *)malloc(dfa->n_states * sizeof (void cspec));
+     void cspec code = `{};
+     void cspec error = `{ return -1; };
+     int i;
+     for (i = 0; i < dfa->n_states; i++)
+	  labels[i] = label();
+     for (i = 0; i < dfa->n_states; i++) {
+	  state_t cur = dfa->states[i];
+	  int j = 0;
+	  code = `{ @code;
+		    @labels[i];
+		    t = *in; };
+	  while (cur->in[j]) {
+	       code = `{ @code; 
+			 if (t == $cur->in[j]) {
+			      in++; *out++ = $cur->out[j];
+			      jump labels[cur->next[j]];
+			 }
+	       };
+	       j++;
+	  }
+	  code = `{ @code; 
+		    if (t == 0) {
+			 if ($cur->finalp) return 0;
+			 else return -2;
+		    }
+		    jump error; 
+	  };
+
+     }
+     return compile(`{ @code; @error; }, int);
+}
+
+int static_dfa (char *in, char *out, dfa_t dfa) {
+     int j;
+     char t;
+     state_t cur = dfa->states[0];
+     
+next:
+     j = 0;
+     t = *in;
+     while (cur->in[j]) {
+	  if (t == cur->in[j]) {
+	       in++; *out++ = cur->out[j];
+	       cur = dfa->states[cur->next[j]];
+	       goto next;
+	  }
+	  j++;
+     }
+     if (t == 0) {
+	  if (cur->finalp) return 0;
+	  else return -2;
+     }
+     return -1;
+}
+
+main(int argc, char *argv[]) { 
+     char in[] = "bdegfgcciklkmmlj";
+     char xout[] = "ywvtutxxrpopnnoq";
+     char out[20] = "";
+     int (*dfa)(char *, char *);
+     int (*dfa2)(char *, char *);
+     int i;
+
+     doargs(argc, argv);
+     printf("## dfa ##\n");
+
+     if (optDCG) {
+	  dfa2 = mk_dfa(&d0); /* Warm the cache */
+
+	  SWON("compilation");
+	  for(i = 0; i < ncomp; i++) {
+	       dfa = mk_dfa(&d0);
+	       decompile(dfa);
+	  }
+	  SWOFF;
+	       
+	  dfa = dfa2;
+	  if (!dfa) return;
+	  dump(dfa);
+
+	  (*dfa)(in, out);	/* Warm the cache */
+	  SWON("run");
+	  for (i = 0; i < nruns; i++)
+	       (*dfa)(in, out);
+	  SWOFF;
+	  if (optVerbose)
+	       printf("%s becomes %s\n", in, out);
+     } else {
+	  static_dfa(in, out, &d0); /* Warm the cache */
+	  SWON("run");
+	  for (i = 0; i < nruns; i++)
+	       static_dfa(in, out, &d0);
+	  SWOFF;
+	  printf("%s becomes %s\n", in, out);
+     }
+     if (strcmp(xout,out))
+	  printf("Warning: expected '%s', obtained '%s'\n", xout, out);
+}

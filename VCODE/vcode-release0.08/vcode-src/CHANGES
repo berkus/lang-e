@@ -1,0 +1,8 @@
+* made everything strictly ansi
+* added rccall
+* fixed bug in definition of v_jl in sparc.md
+* fixed bug in definition of v_jal in alpha.md
+* changed v_local alignment on subword blocks (dawson)
+* removed v_unlock from inside demand() in mips-gen.c
+* added __fast__ option, changing all references to struct v_reg and v_label to
+  references to v_reg_type and v_label_type respectively

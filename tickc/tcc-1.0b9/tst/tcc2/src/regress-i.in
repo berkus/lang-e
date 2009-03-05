@@ -1,0 +1,54 @@
+src: binary.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/binary.0.out
+arg: -x1 1 -x2 1 -v -notime
+
+src: cmp2.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/cmp2.0.out
+arg: -x1 4096 -x2 1 -x3 1 -v -notime
+
+src: dp.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/dp.0.out
+arg: -x1 32 -x2 1 -x3 1 -v -notime
+
+src: heap.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/heap.0.out
+arg: -x1 1 -x2 1 -v -notime
+
+src: hsh.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/hsh.0.out
+arg: -x1 1 -x2 1 -v -notime
+
+src: ms.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/ms.0.out
+arg: -x1 100 -x2 1 -x3 1 -v -notime
+
+src: ntn.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/ntn.0.out
+arg: -x1 1 -x2 1 -v -notime
+
+src: pow.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/pow.0.out
+arg: -x1 1 -x2 13 -x3 1 -v -notime
+
+src: query.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/query.0.out
+arg: -x1 1 -x2 1 -x3 2000 -v -notime
+
+src: mshl2.tc
+tcc: -Wg-O0 -Wx-O0
+out0: ref/mshl.0.out
+arg: -x1 1 -x2 1 -x3 1 -v -notime
+
+src: mshl2.tc
+notcc:
+out0: ref/umshl.0.out
+arg: -x1 0 -x2 1 -x3 1 -v -notime

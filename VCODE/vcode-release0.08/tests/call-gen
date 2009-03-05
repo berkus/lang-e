@@ -1,0 +1,237 @@
+
+######################################################################
+#
+# Call tests
+#
+
+### BEGIN ###
+&initialize;
+&prologue;
+
+%rtype = (
+        "uc", "u",
+        "c", "i",
+        "us", "u",
+        "s", "i",
+        "u", "u",
+        "i", "i",
+        "l", "l",
+        "ul", "ul",
+        "p", "p",
+        "f",    "f",
+        "d", "d",
+);
+
+&emit_calls;
+
+#### DONE ####
+&epilogue;
+
+# we do $n random probes of the search space
+sub emit_random_call {
+	local($trials) = @_;
+	local(@arg_list, @type_list, @cast_list, $str, $type, $type_str);
+	local($arg_list, $cast, $sz, $arg_string, @arg_list2, $fptr);
+
+	foreach (1..$trials) {
+		# the maximum number of parameters sould be a flag
+		$sz = int(rand(5)) + 1;
+		@arg_list2 = @arg_list = @type_list = @cast_list = ();
+		foreach (0..$sz-1) {
+			$n = int(rand(6));
+			$type = "int", $str = "i" if($n == 0);
+			$type = "unsigned", $str = "u" if($n == 1);
+			$type = "long", $str = "l" if($n == 2);
+			$type = "unsigned long", $str = "ul" if($n == 3);
+			$type = "float", $str = "f" if($n == 4);
+			$type = "double", $str = "d" if($n == 5);
+			push(@cast_list, $type); 
+			push(@type_list, $str);
+			push(@arg_list, "s1$str");
+			push(@arg_list2, "arg_list[$_]");
+		}
+		pop(@arg_list);
+		push(@arg_list, "s2$str");
+		$cast = join(',', @cast_list);
+		$type_str = "%" . join('%', @type_list);
+		$arg_list = join(',', @arg_list);
+		$type = $str;
+		$s2 = "s2$type";
+		$arg_string = join(',', @arg_list2);
+		$fptr = "v_$type" . "ptr";
+
+print<<"EOF";
+		v_lambda("param$sz$type_str", "$type_str", arg_list, V_LEAF, insn, sizeof insn);
+		v_ret$rtype{$type}(arg_list[$sz-1]);
+		ip = v_end(0).i;
+		vdemand($s2 == (($type{$type}(*)($cast))ip)($arg_list), param$sz$type_str failed);
+
+		v_lambda("call$sz$type_str", "$type_str", arg_list, V_NLEAF, insn2, sizeof insn2);
+		reg = v_scall$type(($fptr)ip, "$type_str", $arg_string);
+		v_ret$rtype{$type}(reg);
+		ip2 = v_end(0).i;
+		vdemand2($s2 == (($type{$type}(*)($cast))ip2)($arg_list), call$sz$type failed);
+
+
+EOF
+	}
+}
+
+
+ # should do it both with prototypes and without (i.e., do promotion)
+sub emit_straight_call {
+	local($type) = @_;
+	local($arg_list, @args, $type_str, $s2, @cast, $cast);
+	local($fptr, $arg_string, @arg_list);
+	@args = ();
+	$type_str = "";
+
+	$s2 = "s2$type";
+	foreach (1..$maxargs) {
+		# build up arglist
+		push(@cast, "$type{$type}");
+		$cast = join(',', @cast);
+		$arg_list = join(',', (@args, $s2));
+		push(@args, ("s1$type"));
+		$type_str .= "%$type";
+		push(@arg_list, "arg_list[". ($_ -1) ."]");
+		$arg_string = join(',', @arg_list);
+		$fptr = "v_$type" . "ptr";
+print<<"EOF";
+	v_lambda("param$_$type", "$type_str", arg_list, V_LEAF, insn, sizeof insn);
+	v_ret$rtype{$type}(arg_list[$_-1]);
+	ip = v_end(0).i;
+	vdemand($s2 == (($type{$type}(*)($cast))ip)($arg_list), param$_$type failed);
+
+	v_lambda("call$_$type", "$type_str", arg_list, V_NLEAF, insn2, sizeof insn2);
+	reg = v_scall$type(($fptr)ip, "$type_str", $arg_string);
+	v_ret$rtype{$type}(reg);
+	ip2 = v_end(0).i;
+	vdemand2($s2 == (($type{$type}(*)($cast))ip2)($arg_list), call$_$type failed);
+
+EOF
+	}
+}
+
+
+sub emit_calls {
+	$maxargs = 6;
+	# try all straight combinations of (i l u ul f d) upto $maxargs
+	&emit_straight_call("i");
+	&emit_straight_call("u");
+	&emit_straight_call("l");
+	&emit_straight_call("ul");
+	&emit_straight_call("f");
+	&emit_straight_call("d");
+
+	# try arbitrary args upto 2 * $maxargs
+	&emit_random_call(50);
+}
+
+sub prologue {
+	print "int v_errors;\n#include <math.h>\n#include \"vcode.h\"\n#include \"vdemand.h\"\n#include <values.h>\n\n";
+
+print<<EOF;
+
+float c_fabs(float x) { return (x) < 0.0 ? -x : x; }
+double c_abs(double x) { return (x) < 0.0 ? -x : x; }
+float c_fceil(float x) { return (float)(int)(x + .5); }
+double c_ceil(double x) { return (double)(int)(x + .5);}
+float c_ffloor(float x) { return (float)(int)(x); }
+double c_floor(double x) { return (double)(int)(x);}
+float c_fsqrt(float x) { extern double sqrt(double); return (float)sqrt((double)x); }
+double c_sqrt(double x) { extern double sqrt(double); 	return sqrt(x);}
+
+
+int main(int argc, char *argv[]) {
+	v_reg_type	arg_list[100];		/* make sure 100 is big enough */
+	v_reg_type	reg;
+	char		dc, s1c, s2c, cvc;
+	unsigned char	duc, s1uc, s2uc, cvuc;
+	short		ds, s1s, s2s, cvs;
+	unsigned short	dus, s1us, s2us, cvus;
+	int 	     	di, s1i, s2i, cvi;
+	unsigned     	du, s1u, s2u, cvu;
+	unsigned long   dul, s1ul, s2ul, cvul;
+	long     	dl, s1l, s2l, cvl;
+	float		df, s1f, s2f, cvf;
+	double		dd, s1d, s2d, cvd;
+	char 		*dp, *s1p, *s2p, *cvp;
+	v_label_type	l;
+	static unsigned insn[1000];
+	static unsigned insn2[1000];
+	v_iptr 	ip;
+	v_iptr 	ip2;
+	int 	iters = (argc == 2) ? atoi(argv[1]) : 10;
+
+
+loop:
+
+        s1p = (void *)rand();
+        s2p = (void *)rand();
+
+        s1i = rand() - rand();
+        s2i = rand() - rand();
+        if(!(s2i = rand() - rand()))
+                s2i = rand() + 1;
+
+        s1u = rand() - rand();
+        if(!(s2u = rand() - rand()))
+                s2u = rand() + 1;
+
+        s1ul = rand() - rand();
+        if(!(s2ul = rand() - rand()))
+                s2ul = rand() + 1;
+
+        s1l = rand() - rand();
+        if(!(s2l = rand() - rand()))
+                s2l = rand() + 1;
+
+        s2us = rand() - rand();
+        if(!(s2us = rand() - rand()))
+                s2us = rand() + 1;
+
+        s1f = (float)rand() / rand();
+        s2f = (float)rand() / (rand()+1) * ((rand()%1) ? 1. : -1.);
+
+        s1d = (double)rand() / rand();
+        s2d = (double)rand() / (rand()+1) * ((rand()%1) ? 1. : -1.);
+
+
+
+EOF
+}
+
+sub epilogue {
+
+print<<EOF;
+
+	if(!v_errors && iters-- > 0) goto loop;
+
+	if(!v_errors) {
+		printf("No errors!\n");
+		return 0;
+	}
+
+	printf("*** %d Errors! ****\n", v_errors);
+	return 1;
+}
+
+EOF
+}
+
+sub initialize {
+	%type = (
+        	"uc", "unsigned char",
+        	"c", "char",
+        	"us", "unsigned short",
+        	"s", "short",
+        	"u", "unsigned",
+        	"i", "int",
+        	"l", "long",
+        	"ul", "unsigned long",
+        	"p", "void *",
+        	"f",    "float",
+        	"d", "double",
+	);
+}

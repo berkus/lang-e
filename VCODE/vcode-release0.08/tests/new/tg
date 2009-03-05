@@ -1,0 +1,259 @@
+
+%rtype = (
+	"uc", "u",
+	"c", "i",
+	"us", "u",
+	"s", "i",
+	"u", "u",
+	"i", "i",
+	"l", "l",
+	"ul", "ul",
+	"p", "p",
+	"f",	"f",
+	"d", "d",
+);
+
+%type = (
+	"uc", "unsigned char",
+	"c", "char",
+	"us", "unsigned short",
+	"s", "short",
+	"u", "unsigned",
+	"i", "int",
+	"l", "long",
+	"ul", "unsigned long",
+	"p", "void *",
+	"f",	"float",
+	"d", "double",
+);
+
+# we do $n random probes of the search space
+sub emit_random_call {
+	local($trials) = @_;
+	local(@arg_list, @type_list, @cast_list, $str, $type, $type_str);
+	local($arg_list, $cast, $sz, $arg_string, @arg_list2, $fptr);
+
+	foreach (1..$trials) {
+		# the maximum number of parameters sould be a flag
+		$sz = int(rand(5)) + 1;
+		@arg_list2 = @arg_list = @type_list = @cast_list = ();
+		foreach (0..$sz-1) {
+			$n = int(rand(6));
+			$type = "int", $str = "i" if($n == 0);
+			$type = "unsigned", $str = "u" if($n == 1);
+			$type = "long", $str = "l" if($n == 2);
+			$type = "unsigned long", $str = "ul" if($n == 3);
+			$type = "float", $str = "f" if($n == 4);
+			$type = "double", $str = "d" if($n == 5);
+			push(cast_list, $type); 
+			push(type_list, $str);
+			push(arg_list, $str . "s1");
+			push(arg_list2, "arg_list[$_]");
+		}
+		pop(arg_list);
+		push(arg_list, $str . "s2");
+		$cast = join(',', @cast_list);
+		$type_str = "%" . join('%', @type_list);
+		$arg_list = join(',', @arg_list);
+		$type = $str;
+		$s2 = $type . "s2";
+		$arg_string = join(',', @arg_list2);
+		$fptr = "v_$type" . "ptr";
+
+print<<"EOF";
+		v_lambda("param$sz$type_str", "$type_str", arg_list, V_LEAF, insn);
+		v_ret$rtype{$type}(arg_list[$sz-1]);
+		ip = v_end().i;
+		vdemand($s2 == (($type{$type}(*)($cast))ip)($arg_list), param$sz$type_str failed);
+
+		v_lambda("call$sz$type_str", "$type_str", arg_list, V_NLEAF, insn2);
+		reg = v_scall$type(($fptr)ip, "$type_str", $arg_string);
+		v_ret$rtype{$type}(reg);
+		ip2 = v_end().i;
+		vdemand2($s2 == (($type{$type}(*)($cast))ip2)($arg_list), call$sz$type failed);
+
+
+EOF
+	}
+}
+
+
+ # should do it both with prototypes and without (i.e., do promotion)
+sub emit_straight_call {
+	local($type) = @_;
+	local($arg_list, @args, $type_str, $s2, @cast, $cast);
+	local($fptr, $arg_string, @arg_list);
+	@args = ();
+	$type_str = "";
+
+	$s2 = $type . "s2";
+	foreach (1..$maxargs) {
+		# build up arglist
+		push(cast, "$type{$type}");
+		$cast = join(',', @cast);
+		$arg_list = join(',', (@args, $s2));
+		push(args, ($type . "s1"));
+		$type_str .= "%$type";
+		push(arg_list, "arg_list[". ($_ -1) ."]");
+		$arg_string = join(',', @arg_list);
+		$fptr = "v_$type" . "ptr";
+print<<"EOF";
+	v_lambda("param$_$type", "$type_str", arg_list, V_LEAF, insn);
+	v_ret$rtype{$type}(arg_list[$_-1]);
+	ip = v_end().i;
+	vdemand($s2 == (($type{$type}(*)($cast))ip)($arg_list), param$_$type failed);
+
+	v_lambda("call$_$type", "$type_str", arg_list, V_NLEAF, insn2);
+	reg = v_scall$type(($fptr)ip, "$type_str", $arg_string);
+	v_ret$rtype{$type}(reg);
+	ip2 = v_end().i;
+	vdemand2($s2 == (($type{$type}(*)($cast))ip2)($arg_list), call$_$type failed);
+
+EOF
+	}
+}
+
+
+sub emit_calls {
+	$maxargs = 6;
+	# try all straight combinations of (i l u ul f d) upto $maxargs
+	&emit_straight_call("i");
+	&emit_straight_call("u");
+	&emit_straight_call("l");
+	&emit_straight_call("ul");
+	&emit_straight_call("f");
+	&emit_straight_call("d");
+
+	# try arbitrary args upto 2 * $maxargs
+	&emit_random_call(50);
+}
+
+sub prologue {
+	print "#include <math.h>\n#include \"vcode.h\"\n#include \"vdemand.h\"\n#include <values.h>\n";
+
+print<<EOF;
+
+/*
+	extern long random(void);
+	extern int atoi(char *);
+*/
+
+float c_fabs(float x) { return (x) < 0.0 ? -x : x; }
+double c_abs(double x) { return (x) < 0.0 ? -x : x; }
+float c_fceil(float x) { return (float)(int)(x + .5); }
+double c_ceil(double x) { return (double)(int)(x + .5);}
+float c_ffloor(float x) { return (float)(int)(x); }
+double c_floor(double x) { return (double)(int)(x);}
+float c_fsqrt(float x) { extern double sqrt(double); return (float)sqrt((double)x); }
+double c_sqrt(double x) { extern double sqrt(double); 	return sqrt(x);}
+
+
+int main(int argc, char *argv[]) {
+	v_reg_type	arg_list[100];		/* make sure 100 is big enough */
+	static v_reg_type	zero;		/* hack */
+	v_reg_type	reg;
+	v_reg_type 	ird, irs1, irs2;
+	char		cd, cs1, cs2;
+	v_reg_type 	crd, crs1, crs2;
+	unsigned char	ucd, ucs1, ucs2;
+	v_reg_type 	ucrd, ucrs1, ucrs2;
+	short		sd, ss1, ss2;
+	v_reg_type 	srd, srs1, srs2;
+	unsigned short	usd, uss1, uss2;
+	v_reg_type 	usrd, usrs1, usrs2;
+	int 	     	id, is1, is2;
+	v_reg_type 	urd, urs1, urs2;
+	unsigned     	ud, us1, us2;
+	v_reg_type 	ulrd, ulrs1, ulrs2;
+	unsigned long   uld, uls1, uls2;
+	v_reg_type 	lrd, lrs1, lrs2;
+	long     	ld, ls1, ls2;
+	v_reg_type	frd, frs1, frs2;
+	float		fd, fs1, fs2;
+	v_reg_type	drd, drs1, drs2;
+	double		dd, ds1, ds2;
+	v_reg_type 	prd, prs1, prs2;
+	char 		*pd, *ps1, *ps2;
+	v_label_type	l;
+	static unsigned insn[1000];
+	static unsigned insn2[1000];
+	v_iptr 	ip;
+	v_iptr 	ip2;
+	int 	iters = (argc == 2) ? atoi(argv[1]) : 10;
+	int 	aligned_offset, unaligned_offset;
+	int 	ishift, ushift, lshift, ulshift;
+
+	/* v_init(); */
+
+	/* 
+	 * Disgusting hack: 
+	 * 	1. we try to trick vcode into not using free argument 
+	 *	registers as temporaries.
+	 *
+	 *	2. we use registers across lambda invocations.
+	 */
+	v_lambda("foo", "%i%i%i%i%i", arg_list, V_NLEAF, insn);
+
+	v_getreg(&ird, V_I, V_TEMP);
+	ucrd = crd = srd = usrd = urd = ulrd = lrd = prd = ird;
+
+	v_getreg(&irs1, V_I, V_TEMP);
+	urs1 = ulrs1 = lrs1 = prs1 = irs1;
+	v_getreg(&irs2, V_I, V_TEMP);
+	urs2 = ulrs2 = lrs2 = prs2 = irs2;
+	v_end();
+
+	v_lambda("foo", "%d%d%d%d%d", arg_list, V_NLEAF, insn);
+	v_getreg(&frd, V_D, V_TEMP);
+	drd = frd;
+	v_getreg(&drs1, V_D, V_TEMP);
+	frs1 = drs1;
+	v_getreg(&drs2, V_D, V_TEMP);
+	frs2 = drs2;
+	v_end();
+	
+loop:
+	is1 = random() - random(); 
+	us1 = random() - random();
+	uls1 = random() - random();
+	ls1 = random() - random();
+	is2 = random() - random();
+	us2 = random() - random();
+	uls2 = random() - random();
+	ls2 = random() - random();
+	fs1 = (float)random() / random();
+	fs2 = (float)random() / random();
+	ds1 = (double)random() / random();
+	ds2 = (double)random() / random();
+
+	ishift = random() % (sizeof(int) * BITSPERBYTE);
+	ushift = random() % (sizeof(unsigned) * BITSPERBYTE);
+	lshift = random() % (sizeof(long) * BITSPERBYTE);
+	ulshift = random() % (sizeof(unsigned long) * BITSPERBYTE);
+	/* 
+	 * Rip off the lower bits to give 8 byte alignement; will have
+	 * to change this for machines with more stringent requirements.
+	 */
+	aligned_offset = (random() - random()) & ~7;
+	unaligned_offset = (random() - random());
+
+	printf("is1 %d, is2 %d, us1 %x, us2 %x\\n", is1,is2,us1,us2);
+	printf("uls1 %lu, uls2 %lu, ls1 %ld, ls2 %ld\\n", uls1,uls2,ls1,ls2);
+	printf("fs1 = %f, fs2 = %f, ds1 = %f, ds2 = %f\\n",fs1,fs2,ds1,ds2);
+	printf(" aligned offset = %d, unaligned offset %d\\n", 
+		aligned_offset, unaligned_offset);
+	printf("ishift = %d, ushift = %d, lshift = %d, ulshift = %d\\n",
+		ishift, ushift, lshift, ulshift);	
+
+EOF
+}
+
+sub epilogue {
+
+print<<EOF;
+	if(iters-- > 0) goto loop;
+	return 0;
+}
+
+EOF
+}

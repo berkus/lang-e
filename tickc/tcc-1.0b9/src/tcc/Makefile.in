@@ -1,0 +1,33 @@
+VPATH	= 	@srcdir@
+INSTALL	=	@INSTALL@
+CC	=	@CC@
+TARGET	=	$(T_CPU)-$(T_OS)
+
+ifeq ($(T_OS),sstrix)
+d_other	=	-D__SIMPLE_SCALAR__ -D_SSHOME=\"$(SSDIR)\" \
+		-D_TICKC_GLP=\"`$(SSCC) -v 2>&1 | grep "Reading specs" | \
+			awk '{print $$NF}' | sed 's/\/specs//g'`\"
+else
+d_other =	-D_TICKC_GLP=\"`$(CC) -v 2>&1 | grep "Reading specs" | \
+			awk '{print $$NF}' | sed 's/\/specs//g'`\"
+endif
+
+CFLAGS	=	-g -O $(xdefs) $(d_other)
+
+OBJS	=	tcc.o $(TARGET).o
+
+
+install: tcc bprint
+	$(INSTALL) tcc $(bindir)
+	$(INSTALL) bprint $(bindir)
+
+tcc:	$(OBJS)
+
+$(TARGET).o: $(srcdir)/config/sys/$(TARGET).c
+	$(CC) $(CFLAGS) -c $<
+
+clean:
+	rm -f *.o a.out core
+
+dist-clean: clean
+	rm -f bprint tcc

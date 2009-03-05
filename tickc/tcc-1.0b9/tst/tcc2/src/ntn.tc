@@ -1,0 +1,127 @@
+#include "benchmark.h"
+
+typedef double (*sdptr)(double);
+typedef double cspec (*dptr)(double vspec);
+typedef double (*df)(void);
+
+void printout(double d) { printf("%5.2e ",d); }
+void error(char *msg) { printf(msg); exit(1); }
+
+#define inline
+static inline double static_abs(double x) { return x < 0.0 ? -x : x; }
+
+/* n is the number of allowed iterations; p0 is the initial estimate, 
+   f is the function to find the root of and fprime is its derivative. */
+double static_newton(int n, double tol, double p0, sdptr f, sdptr fprime) {
+     int i;
+     double p;
+
+     for(i = 0; i < n; i++) {
+	  p = p0 - f(p0) / fprime(p0);
+	  if(static_abs(p - p0) < tol) {
+	       return p;
+	  }
+	  p0 = p;
+     }
+     error("method failed");
+     return 0;
+}
+
+/* (x+1)^2 */
+double static_f(double x) {
+     x = x + 1.0;
+     return x * x;
+}
+
+/* 2(x+1) */
+double static_fprime(double x) {
+     return 2.0 * (x + 1.0);
+}
+
+double cspec abs(double vspec x) { return `(@x < 0.0 ? -@x : @x ); }
+
+/* Function that constructs a cspec to compute f(x) = (x+1)^2. */
+double cspec f(double vspec x) { return `((@x + 1.0) * (@x + 1.0)); }
+
+/* Function that constructs a cspec to calculate f'(x) = 2(x+1) */
+double cspec fprime(double vspec x) { return `(2.0 * (@x + 1.0)); }
+
+double newton(int n, double tol, double usr_p0, dptr f, dptr fprime) {
+     void cspec cs;
+     df func, func2;
+     int i;
+     int warmupcache = 1;
+     double root = 0.;
+     double vspec p, vspec p0, vspec e;
+  
+     goto nl1;			/* Warm up cache */
+
+nl0:
+     SWON("compilation");
+     for (i = 0; i < ncomp; i++) {
+nl1:
+	  p =  local( double);
+	  p0 = local( double);
+	  e =  local( double);
+	  cs = `{
+	       int i;
+	       @p0 = usr_p0;
+	
+	       for (i = 0; i < $n; i++) {
+		    @p = @p0 - @f(p0) / @fprime(p0);
+		    @e = @p - @p0;
+	  
+		    if (@abs(e) < tol)
+		    return @p;
+		    @p0 = @p; /* Seed the next iteration. */
+	  
+	       }
+	       error("method failed\n");
+	       return 0;
+	  };
+	  func = compile(cs, double);
+
+	  if (warmupcache) {
+	       warmupcache = 0;
+	       func2 = func;
+	       goto nl0;
+	  }
+	  
+	  decompile(func);
+     }
+     SWOFF;
+
+     func = func2;
+     if (!func) return 0.;
+     dump(func);
+
+     root = (*func)();		/* Warm up cache */
+     SWON("run");
+     for (i = 0; i < nruns; i++)
+	  root = (*func)();
+     SWOFF;
+     return root;
+}
+
+/* Call newton to solve an equation. */
+void main(int argc, char **argv) {
+     double root;
+     int i;
+
+     doargs(argc, argv);
+     printf("## ntn ##\n");
+
+     if (optDCG) {
+	  root = newton(1000, 1.e-10, 1000., f, fprime);
+     } else {
+	  root = static_newton(1000, 1.e-10, 1000., /* Warm up cache */
+			       static_f, static_fprime);
+	  SWON("run");
+	  for (i = 0; i < nruns; i++)
+	       root = static_newton(1000, 1.e-10, 1000., 
+				    static_f, static_fprime);
+	  SWOFF;
+     }
+     if (optVerbose)
+	  printf("Root of f(x)=(x+1)^2 is %f\n", root);
+}

@@ -1,0 +1,63 @@
+.PHONY: all clean dist-clean install tags
+
+VPATH	= 	@srcdir@
+
+CFLAGS1	=	-Wall $(xdefs) -I. -I@srcdir@ -I$(includedir)/tickc
+ifeq ($(MODE),optimize)
+CFLAGS	=	$(CFLAGS1) -O3 -DNDEBUG
+else
+CFLAGS	=	$(CFLAGS1) -O0 -ggdb -Wno-unused
+endif
+
+INSTALL =	@INSTALL@
+TAGS	=	@TAGS@
+
+ifeq ($(T_OS),sstrix)
+CC	= 	$(SSCC)
+RANLIB	=	$(SSRANLIB)
+AR	=	$(SSAR)
+SRC2	=	ssdump.c
+HDR2	=	ssdump.h
+else
+CC	= 	@CC@
+RANLIB	=	@RANLIB@
+AR	=	@AR@
+SRC2	=
+HDR2	=
+endif
+
+SRCS	=	mem.c sw.c $(SRC2)
+HDRS	=	bv.h mem.h sw.h $(HDR2)
+OBJS	=	$(subst .c,.o,$(SRCS))
+SUP	=	libtcsup.a
+
+all: install
+
+install: $(SUP) $(HDRS)
+	$(INSTALL) -m 0644 $(SUP) $(libdir); \
+	for p in $(HDRS); do \
+		$(INSTALL) -m 0644 @srcdir@/$$p $(includedir)/tickc; \
+	done
+	$(RANLIB) $(libdir)/$(SUP)
+
+clean:
+	rm -f $(SUP) *.[do] test-* core *~
+	rm -f $(addprefix $(includedir)/tickc/,$(notdir $(HDRS)))
+
+dist-clean:	clean
+	rm -f @srcdir@/TAGS
+
+tags:
+	cd @srcdir@; $(TAGS) -t *.c *.h
+
+$(SUP): $(OBJS)
+	$(AR) ruv $@ $^; $(RANLIB) $@
+
+%.d: %.c
+	$(SHELL) -ec "$(CC) -M -MG $(CFLAGS) $< | \
+		sed 's/$*\\.o[ :]*/$*.o $@: /g' > $@"
+
+%: %.c
+	$(CC) $(CFLAGS) -o $@ $^
+
+include $(subst .c,.d,$(SRCS))

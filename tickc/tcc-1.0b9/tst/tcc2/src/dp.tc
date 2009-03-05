@@ -1,0 +1,82 @@
+#include "benchmark.h"
+
+typedef int (*iip)(int *);
+
+void cspec mkdot(int r[], int n) {
+     int k, cspec sum, * vspec col;
+     int *row = r;
+     col = param(int * , 0);
+
+     sum = `0;
+     for (k = 0; k < n; k++) {
+	  if (row[k]) {
+	       sum = `((@col)[$k]*$row[k] + @sum);
+	  }
+     }
+     return `{ return @sum; };
+}
+
+int staticdotproduct(int *x, int *y, int n) {
+     int t, r;
+     for (r = t = 0; r<n; r++)
+	  t += x[r]*y[r];
+     return t;
+}
+
+int main(int argc, char **argv) {
+     void cspec a;
+     iip f, f2;
+     int r;
+     int *x, *y, z;
+
+     doargs(argc, argv);
+     printf("## dp ##\n");
+
+     x = (int *)malloc(ndata*sizeof (int));
+     y = (int *)malloc(ndata*sizeof (int));
+     srandom(1);
+     for (r = 0; r < ndata; r++) {
+	  if (r%3) x[r] = 0;
+	  else x[r] = (int)(random()%0xFF);
+	  y[r] = (int)random()%0xFF;
+     }
+
+     if (optVerbose) {
+	  for (r = 0; r < ndata; r++)
+	       printf("%d ",x[r]);
+	  printf("\n");
+	  for (r = 0; r < ndata; r++)
+	       printf("%d ",y[r]);
+	  printf("\n");
+     }
+    
+     if (optDCG) {
+	  f2 = (iip)compile(mkdot(x,ndata),int); /* Warm the cache */
+
+	  SWON("compilation");
+	  for (r = 0; r < ncomp; r++) {
+	       f = (iip)compile(mkdot(x,ndata),int);
+	       decompile(f);
+	  }
+	  SWOFF;
+
+	  f = f2;
+	  if (!f) return;
+	  dump(f);
+
+	  z = (*f)(y);		/* Warm the cache */
+	  SWON("run");
+	  for(r = 0; r < nruns; r++)
+	       z = (*f)(y);
+	  SWOFF;
+     } else {
+	  z = staticdotproduct(x,y,ndata); /*  Warm the cache*/
+	  SWON("run");
+	  for (r = 0; r < nruns; r++)
+	       z = staticdotproduct(x,y,ndata);
+	  SWOFF;
+     }
+
+     if (optVerbose)
+	  printf("%d\n",z);
+}

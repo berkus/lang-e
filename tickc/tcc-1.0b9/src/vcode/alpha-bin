@@ -1,0 +1,302 @@
+#include <assert.h>
+
+/*
+ * put in the aligned memory operations (used for saving and restoring, and
+ * other stack manipulation operations).
+ */
+
+/* Taken from page 3-10 through 3-12 */
+
+/* five alpha formats: */
+
+/* 16-bit offset */
+
+#define OP(x) ((x) << 26)
+#define RA(x) ((x) << 21)
+#define RB(x) ((x) << 16)
+#define RC(x) (x)
+#define IMM(x) ((x) <<13)
+#define FUNC(x) ((x) << 5)
+
+/* probably have to rip off the high bits afterward */
+#define SIGN_EXT21(x) (((((int)(x)) << 10) >> 10))
+
+#define SIGN_EXT16(x) ((unsigned short)(signed short)(x))
+
+#define is32bit(imm)    ((imm) < 0x7fffffff && (imm) >= -0x7fffffff)
+#define isu32bit(imm)    ((unsigned long)(imm) <= 0xffffffff)
+
+#define is16bit(imm)    ((long)(imm) < 0x7fff && (long)(imm) >= -0x7fff)
+#define isu16bit(imm)   ((unsigned long)(imm) <= 0xffff)
+
+#define is8bit(imm)    ((long)(imm) < 0x7f && (long)(imm) >= -0x7f)
+#define isu8bit(imm)   ((unsigned long)(imm) <= 0xff)
+
+/* high order two bits of displacement field */
+#define HINT(disp, x) ((short)((disp) | ((unsigned)(x) << 14)))
+
+#define jmp(ra)  MEMORY(v_ip, 0x1a, _ra, ra, HINT(0, 0))
+#define jmp_nolink(ra)  MEMORY(v_ip, 0x1a, _zero, ra, HINT(0, 0))
+#define jmp_link(rb, ra)  MEMORY(v_ip, 0x1a, rb, ra, HINT(0, 0))
+#define jsr(ra, dst, disp)  MEMORY(v_ip, 0x1a, ra, dst, HINT(disp, 1))
+#define ret()  MEMORY(v_ip, 0x1a, _zero, _ra, HINT(1, 2))
+
+/* memory immediate */
+#define MEMORY(p, op, ra, rb, disp) do {			\
+	long _disp = (disp);					\
+	if(is16bit(_disp))					\
+		(*p++ = ((OP(op) | RA(ra) | RB(rb) | SIGN_EXT16(_disp))));	\
+	else {							\
+		set(_at, _disp);					\
+                addq(_at, _at, rb);                             \
+		(*p++ = ((OP(op) | RA(ra) | RB(_at) | 0)));	\
+	}							\
+} while(0)
+#define UNSAFE_MEMORY(p, op, ra, rb, disp) \
+	(*p++ = ((OP(op) | RA(ra) | RB(rb) | SIGN_EXT16(disp))))
+
+#define unsafe_lda(ra, rb, disp16) \
+	do { UNSAFE_MEMORY(v_ip, 0x8, ra, rb, disp16); } while(0)
+
+#define unsafe_ldah(ra, rb, disp16) \
+	do { UNSAFE_MEMORY(v_ip, 0x9, ra, rb, disp16); } while(0)
+
+/* branch insn: disp shifted left 2 bits, and sign extended */
+#define BRANCH(p, op, ra, disp)	\
+	(*p++ = (OP(op) | RA(ra) | disp))
+
+#define OPERATE(p, function, op, ra, rb, rc)\
+	(*p++ = (OP(op) | RA(ra) | RB(rb) | FUNC(function) | RC(rc)))
+
+#define OPERATE_IM(p, function, op, ra, imm8, rc) do {			\
+	if(isu8bit(imm8))						\
+		 *p++ = (OP(op) | IMM(imm8) | RA(ra) | (1<<12) | FUNC(function) | RC(rc));\
+	else {								\
+		set(_at, imm8);					\
+		OPERATE(p, function, op, ra, _at, rc);			\
+	}								\
+}while(0)
+#define OPERATE_IMU(p, function, op, ra, imm8, rc) do {			\
+	unsigned long _imm8 = imm8;					\
+	if(isu8bit(_imm8))						\
+		 *p++ = (OP(op) | IMM(_imm8) | RA(ra) | (1<<12) | FUNC(function) | RC(rc));\
+	else {								\
+		setu(_at, _imm8);					\
+		OPERATE(p, function, op, ra, _at, rc);			\
+	}								\
+}while(0)
+
+
+#define FP_OPERATE(p, op, func, fa, fb, fc)	\
+	*p++ = (OP(op) | RA(fa) | RB(fb) | FUNC(func) | (fc))
+
+/* unary: fa = 31 */
+
+
+/* Synthetic */
+#define nop()		bis(_r31, _r31, _r31)
+#define fnop()		cpys(_f31, _f31, _f31)
+#define clr(dst) 	bis(_r31, _r31, dst)
+#define fclr(r)		cpys(_f31, _f31, dst)
+	
+/*
+literals
+	8 bit
+	li(#lit8, ry) bis(r31, lit8, ry)
+	
+sign ext is more tedious.  see a-13
+
+*/
+
+#define bltf(a, b, l) do { cmptlt(_dat, a, b); fbne(_dat, l); } while(0)
+#define bgtf(a, b, l) do { cmptlt(_dat, a, b); fbeq(_dat, l); } while(0)
+#define blef(a, b, l) do { cmptle(_dat, a, b); fbne(_dat, l); } while(0)
+#define bgef(a, b, l) do { cmptle(_dat, a, b); fbeq(_dat, l); } while(0)
+#define beqf(a, b, l) do { cmpteq(_dat, a, b); fbne(_dat, l); } while(0)
+#define bnef(a, b, l) do { cmpteq(_dat, a, b); fbeq(_dat, l); } while(0)
+
+/* clean this up with macros */
+
+/* < */
+#define cmpluq(a, b, l) do { cmpult(_at, a, b); bne(_at, l); } while(0)
+#define cmpluqi(a, b, l) do { cmpulti(_at, a, b); bne(_at, l); } while(0)
+#define cmplulqi(a, b, l) do { cmpullti(_at, a, b); bne(_at, l); } while(0)
+
+#define cmplq(a, b, l) do { cmplt(_at, a, b); bne(_at, l); } while(0)
+#define cmplqi(a, b, l) do { cmplti(_at, a, b); bne(_at, l); } while(0)
+
+
+/* <= */
+#define cmpleuq(a, b, l) do { cmpule(_at, a, b); bne(_at, l); } while(0)
+#define cmpleuqi(a, b, l) do { cmpulei(_at, a, b); bne(_at, l); } while(0)
+#define cmpleulqi(a, b, l) do { cmpullei(_at, a, b); bne(_at, l); } while(0)
+
+#define cmpleq(a, b, l) do { cmple(_at, a, b); bne(_at, l); } while(0)
+#define cmpleqi(a, b, l) do { cmplei(_at, a, b); bne(_at, l); } while(0)
+
+/* = */
+#define cmpeql(a, b, l) do { subl(_at, a, b); beq(_at, l); } while(0)
+#define cmpeqli(a, b, l) do { subli(_at, a, b); beq(_at, l); } while(0)
+
+#define cmpeqq(a, b, l) do { subq(_at, a, b); beq(_at, l); } while(0)
+#define cmpeqqi(a, b, l) do { subqi(_at, a, b); beq(_at, l); } while(0)
+
+/* != */
+#define cmpnel(a, b, l) do { subl(_at, a, b); bne(_at, l); } while(0)
+#define cmpneli(a, b, l) do { subli(_at, a, b); bne(_at, l); } while(0)
+
+#define cmpneq(a, b, l) do { subq(_at, a, b); bne(_at, l); } while(0)
+#define cmpneqi(a, b, l) do { subqi(_at, a, b); bne(_at, l); } while(0)
+
+/* > */
+#define cmpgtuq(a, b, l) do { cmpule(_at, a, b); beq(_at, l); } while(0)
+#define cmpgtuqi(a, b, l) do { cmpulei(_at, a, b); beq(_at, l); } while(0)
+#define cmpgtulqi(a, b, l) do { cmpullei(_at, a, b); beq(_at, l); } while(0)
+
+#define cmpgtq(a, b, l) do { cmple(_at, a, b); beq(_at, l); } while(0)
+#define cmpgtqi(a, b, l) do { cmplei(_at, a, b); beq(_at, l); } while(0)
+
+/* >= */
+#define cmpgeuq(a, b, l) do { cmpult(_at, a, b); beq(_at, l); } while(0)
+#define cmpgeuqi(a, b, l) do { cmpulti(_at, a, b); beq(_at, l); } while(0)
+#define cmpgeulqi(a, b, l) do { cmpullti(_at, a, b); beq(_at, l); } while(0)
+
+#define cmpgeq(a, b, l) do { cmplt(_at, a, b); beq(_at, l); } while(0)
+#define cmpgeqi(a, b, l) do { cmplti(_at, a, b); beq(_at, l); } while(0)
+
+
+#define LOW16(x) ((unsigned short)(x))
+#define HI(x) LOW16(((unsigned)(x) >> 16))
+#define SEXT(x) ((int)(x))
+
+/* 
+ * Load a 32-bit immediate. 
+ * See a-13.
+ */
+extern void set(unsigned r, long val);
+extern void setu(unsigned r, unsigned long val);
+
+#define addq(rd, rs1, rs2) \
+	do { if((rs2) != _zero || (rd) != (rs1)) _addq(rd, rs1, rs2); } while(0)
+
+#define _addqi(rd, rs1, imm) \
+	do { if((imm) || (rd) != (rs1)) __addqi(rd, rs1, imm); } while(0)
+#define _addli(rd, rs1, imm) \
+	do { if((imm) || (rd) != (rs1)) __addli(rd, rs1, imm); } while(0)
+#define _subli(rd, rs1, imm) \
+	do { if((imm) || (rd) != (rs1)) __subli(rd, rs1, imm); } while(0)
+#define _subqi(rd, rs1, imm) \
+	do { if((imm) || (rd) != (rs1)) __subqi(rd, rs1, imm); } while(0)
+
+#define mov(rx, ry)	if((rx) != (ry)) bis(rx, ry, ry)
+#define fmov(fx, fy)	if((fx) != (fy)) cpys(fx, fy, fy)
+#define neg(rx, ry)	subq(_r31, rx, ry)
+#define fneg(rx, ry)	cpysn(rx, ry, ry)
+
+#define not(rx, ry)	cmpeq(rx, _r31, ry)
+#define com(rx, ry)	ornot(rx, _r31, ry)
+#define or(rx, ry, rz)	bis(rx, ry, rz)
+#define andnot(rx, ry, rz)	bic(rx, ry,rz)
+#define xornot(rx, ry, rz)	eqv(rx, ry, rz)
+#define andnoti(rx, ry, imm)	bici(rx, ry,imm)
+#define xornoti(rx, ry, imm)	eqvi(rx, ry, imm)
+%%
+(ra, rb, disp16) MEMORY(v_ip, @bin, ra, rb, disp16); {
+	ldq_u stq_u 
+	0x0b  0x0f  
+	lda  ldah 
+	0x08 0x09 
+	ldf  ldg  lds  ldt  stf  stg  sts  stt  ldl  ldq  ldl_l ldq_l 
+	0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28 0x29 0x2a  0x2b  
+	stl  stq  stl_c stq_c 
+	0x2c 0x2d 0x2e  0x2f
+}
+
+(ra, disp) BRANCH(v_ip, @bin, ra, disp); {
+        br   bsr  
+        0x30 0x34
+}
+/* Inverted order of BRANCH and jmark to make bpo work correctly */
+(ra, disp) BRANCH(v_ip, @bin, ra, 0); v_jmark(v_ip, disp); {
+	br_l   fbeq fblt fble bsr_l  fbne fbge fbgt blbc beq 
+	0x30   0x31 0x32 0x33 0x34   0x35 0x36 0x37 0x38 0x39
+	blt  ble  blbs bne  bge bgt 
+	0x3a 0x3b 0x3c 0x3d 0x3e 0x3f
+}
+(rc, ra, rb) OPERATE(v_ip, @bin, 0x10, ra, rb, rc); {
+	addl s4addl subl s4subl cmpbge s8addl s8subl cmpult 
+	0x00 0x02   0x09 0x0b   0x0f   0x12   0x1b   0x1d
+	_addq s4addq s4subq subq cmpeq s8addq s8subq cmpule addlv 
+	0x20 0x22   0x2b   0x29 0x2d  0x32   0x3b   0x3d   0x40 
+	sublv cmplt addqv cmple 
+	0x49  0x4d  0x60  0x6d
+}
+(rc, ra, simm8) OPERATE_IM(v_ip, @bin, 0x10, ra, simm8, rc); {
+	__addli s4addli __subli s4subli cmpbgei s8addli s8subli 
+	0x00  0x02      0x09  0x0b    0x0f    0x12    0x1b    
+	__addqi s4addqi s4subqi __subqi cmpeqi s8addqi s8subqi 
+	0x20  	0x22    0x2b    0x29  	0x2d   0x32    0x3b    
+	sublvi cmplti addqvi cmplei addlvi 
+	0x49   0x4d   0x60   0x6d 0x40 
+	cmpulti cmpulei
+	0x1d 0x3d
+}
+(rc, ra, imm8) OPERATE_IMU(v_ip, @bin, 0x10, ra, imm8, rc); {
+	cmpullti cmpullei
+	0x1d 0x3d
+}
+
+(rc, ra, rb) OPERATE(v_ip, @bin, 0x11, ra, rb, rc); {
+	xor  eqv  and  bic  bis  ornot cmoveq cmovne cmovlbs 
+	0x40 0x48 0x00 0x08 0x20 0x28  0x24   0x26   0x14 
+	cmovlt cmovge cmovlbc cmovle cmovgt 
+	0x44   0x46   0x16    0x64   0x66
+}
+(rc, ra, simm8) OPERATE_IM(v_ip, @bin, 0x11, ra, simm8, rc); {
+	xori  eqvi  andi  bici  bisi  ornoti cmoveqi cmovnei cmovlbsi 
+	0x40 0x48 0x00 0x08 0x20 0x28  0x24   0x26   0x14 
+	cmovlti cmovgei cmovlbci cmovlei cmovgti 
+	0x44   0x46   0x16    0x64   0x66
+}
+(rc, ra, rb) OPERATE(v_ip, @bin, 0x12, ra, rb, rc); {
+	sll  sra  srl  extbl extwl extll extql extwh extlh 
+	0x39 0x3c 0x34 0x06  0x16  0x26  0x36  0x5a  0x6a
+	extqh insbl inswl insll insql inswhl inslh insqh 
+	0x7a  0x0b  0x1b  0x2b  0x3b  0x57   0x67  0x77
+	mskbl mskqh mskwl mskll mskql mskwh masklh maskqh zap  zapnot 
+	0x02  0x72  0x12  0x22  0x32  0x52  0x62   0x72   0x30 0x31
+	msklh inswh
+	0x62  0x57
+}
+(rc, ra, simm8) OPERATE_IM(v_ip, @bin, 0x12, ra, simm8, rc); {
+	slli  srai  srli  extbli extwli extlli extqli extwhi extlhi 
+	0x39 0x3c 0x34 0x06  0x16  0x26  0x36  0x5a  0x6a
+	extqhi insbli inswli inslli insqli inswhli inslhi insqhi 
+	0x7a  0x0b  0x1b  0x2b  0x3b  0x57   0x67  0x77
+	mskbli mskwli msklli mskqli mskwhi masklhi maskqhi zapi  zapnoti 
+	0x02  0x12  0x22  0x32  0x52  0x62   0x72   0x30 0x31
+}
+(rc, ra, rb) OPERATE(v_ip, @bin, 0x13, ra, rb, rc); {
+	mull mulqv mullv umulh mulq 
+	0x00 0x60 0x40 0x30 0x20
+}
+(rc, ra, simm8) OPERATE_IM(v_ip, @bin, 0x13, ra, simm8, rc); {
+	mulli mulqvi mullvi umulhi mulqi 
+	0x00 0x60 0x40 0x30 0x20
+}
+(fc, fa, fb) FP_OPERATE(v_ip, 0x16, @bin, fa, fb, fc); {
+	adds addt cmpteq cmptlt cmptle cmptun
+	0x80 0xa0 0xa5   0xa6   0xa7   0xa4  
+	divs divt muls mult subs subt
+	0x83 0xa3 0x82 0xa2 0x81 0xa1
+}
+(fc, fb) FP_OPERATE(v_ip, 0x16, @bin, _f31, fb, fc); {
+ 	cvtqs cvtqt cvttq cvtts  cvttqc
+ 	0xbc  0xbe 0xaf 0xac  	 0x2f
+}
+(fc, fa, fb) FP_OPERATE(v_ip, 0x17, @bin, fa, fb, fc); {
+	cpys cpysn cpyse 
+	0x20 0x21  0x22
+	fcmoveq fcmovne fcmovge fcmovlt fcmovle fcmovgt
+	0x2a    0x2b	0x2d	0x2c	0x2e	0x2f
+}

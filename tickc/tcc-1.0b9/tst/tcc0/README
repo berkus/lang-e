@@ -1,0 +1,6 @@
+.0  :  inputs
+.1bk:  expected runtime output
+.2  :  compile time output (expected is in ../../../tst/*.2
+.c  :  source
+.s  :  compiler output
+.sbk:  expected compiler output

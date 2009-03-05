@@ -1,0 +1,607 @@
+		Peephole Optimization Toolkit
+		-----------------------------
+
+0. Table of Contents
+--------------------
+
+1. Overview
+2. Design Motivation
+3. Using BOG and BPO
+3.1. Binary Rewrite Rules
+3.2. Rewrite Element Size
+3.3. The BPO Interface
+4. Using TOG and TPO
+4.1. Text Rewrite Rules
+4.2. Running BOG
+4.3. The TPO Interface
+4.4. Types of Patternization
+5. Tips and Techniques
+5.1. Using TPO to Generate BPO Input
+5.2. Infinite Loops
+6. Bugs
+
+
+1. Overview
+-----------
+
+The toolkit consists of two peephole optimizer generators and two
+drivers.
+
+BOG is the binary optimizer generator: it takes in specifications
+(rewrite rules) for optimizations on binary data, and produces a C
+file containing data structures which can be used by BPO, the binary
+peephole optimizer driver, to perform those optimizations.
+
+TOG and TPO are analogous to BOG and BPO, and are designed for use on
+text data.
+
+
+2. Design Motivation
+--------------------
+
+The design is split according to two criteria: "binary" versus "text,"
+and "generator" versus "driver".
+
+The split between "binary" and "text" stems from the differing needs
+of the two kinds of rewrite rules.  For the purposes of this project,
+binary rewrite rules (1) operate on arbitrary bit patterns, below the
+level of the natural machine word, and (2) have a notion of length and
+bit position.  In other words, it is necessary to express "match bits
+4-7 of word 2".  Text rewrite rules, by contrast, are designed to
+express text substring matches.  Thus, they (1) never operate on data
+smaller than a char, and (2) they do not embody a clear notion of
+position, but rather of sequence.  In other words, one often wants to
+express "match the string between 'mov' and ','", rather than "match
+characters 5-10".  These differences motivated a different syntax for
+each kind of rewrite rule.  Furthermore, although the two kinds of
+optimizers share their core rewriting routine, efficiency concerns led
+to rather different implementations.
+
+The "generator" versus "driver" split was inspired by yacc and similar
+programs.  In principle, the generators are not necessary, but
+precomputing the data structures that represent the rules
+significantly improves performance.  The use of generators does not
+really affect the usability of the system, since rule sets generally
+change only relatively slowly.
+
+
+3. Using BOG and BPO
+--------------------
+
+Performing binary peephole optimizations involves the following steps:
+
+1. Write ASCII rules that denote the binary optimizations.
+1.1. (Optionally) Rebuild BOG to handle a given machine word width.
+2. Compile the ASCII rules with BOG, obtaining a BPO C data file.
+3. Compile BPO, and link it with the data file from (2) and an
+   appropriate driver, obtaining a binary peephole optimizer.
+4. Run the binary optimizer from (3).
+
+Pictorially (executables that are run are in square brackets):
+
+		   (1)	binary rules (ASCII)
+				|
+			        V
+			     [ bog ]
+				|
+				V
+			   C data file
+				|
+				V
+		   (2)	  [ C compiler ]
+				|
+				V
+		   (3)	    [ linker ]    <-- bpo.o, driver.o
+				|
+				V
+			 binary optimizer
+
+The rest of this section describes this process in more detail.
+
+3.1. Binary Rewrite Rules
+-------------------------
+
+The grammar for binary rewrite rules is as follows (braces and '|'
+indicate grouping and choice, square brackets denote one element from
+a given range, '*' is the Kleene operator, and 'x+' is 'xx*'):
+
+rules	::=	rule rules | empty
+rule	::=	input output
+input	::=	data '='
+output	::=	data '+'
+data	::=	{ const | variable | comment }*
+const	::=	{ 1 | 0 }+
+variable::=	{ ['a'-'z'] | ['A'-'Z'] }'-'*
+comment	::=	'#' <any character other than '\n'> '\n'
+
+Each rule consists of an input pattern that is matched against binary
+input data, and an output pattern that determines how the input is
+rewritten if the input pattern matches.  Comments begin with '#' and
+run to the end of the line.  Wildcards (variables) are denoted by a
+letter of the alphabet optionally followed by dashes.  Thus 'a---'
+matches a sequence of four bits, bound to the variable 'a'.  The
+language is case insensitive: 'A' is the same as 'a'.  All instances
+of a variable within a rule must have the same length and denote the
+same bit pattern.  Thus, the input pattern '11a---00a-' is not a legal
+input pattern, because it attempts to bind 'a' to two bit patterns of
+different lengths.  In addition, the pattern 'a--a--' will match the
+data '101101', but not the data '101100'.
+
+Consider an example rule:
+
+1010a--- # this is a sample input line
+=
+a---1111 # and this is an output line
++
+
+This rule looks for any byte having the value 0xa (1010) in the most
+significant nibble, and replaces it with a byte whose most significant
+nibble is the original byte's least significant nibble, and whose
+least significant nibble is 0xf (1111).
+
+Additionally, the following rule,
+
+10001000 = +
+
+deletes any bytes having value 0x88, while this rule,
+
+1111a-------b-------c-------
+=
+a-------b-------c-------1111
++
+
+rotates the bytes in a word that begins with '1111'.
+
+3.2. Rewrite Element Size
+-------------------------
+
+Central to BOG and BPO is the notion of "rewrite element" size.  The
+rewrite element is the smallest unit that can be denoted by a pattern,
+and corresponds to the granularity at which BPO reads and writes data.
+The smallest rewrite unit on a given machine is the smallest type
+accessible through C on that machine, usually an 8-bit char.
+Similarly, the largest rewrite unit is defined by the largest basic
+type, usually a 32- or 64-bit integer.
+
+In other words, while rules allow one to manipulate individual bits,
+one cannot write the rule '1=0+'.  Assuming an 8-bit rewrite unit,
+both the input and output patterns must have a length that is a
+multiple of 8.
+
+Variables may not span rewrite unit boundaries.  Thus, given a
+hypothetical 4-bit rewrite unit, this rule is illegal:
+
+11a---00 = a---0011 +
+
+However, it can easily be rewritten as follows:
+
+11a-b-00 = a-b-0011 +
+
+3.2.1. Semantics
+----------------
+
+The size of the rewrite element must be taken into account when
+writing rules.  Within each rewrite element, bits increase in
+significance from right to left; the addresses matched by each rewrite
+element, however, increase as one moves from one rewrite element to
+the one following it in the pattern.
+
+Consider an input pattern to match a 32-bit word having value
+0x12345678.  Using a 32-bit rewrite element, one would write the
+pattern as,
+
+0001 0010 0011 0100 0101 0110 0111 1000
+
+with bits increasing in significance from right to left.  But
+using an 8-bit rewrite element, one must take endianness into account.
+Thus, for a big-endian machine (such as the Intel x86), one would
+write,
+
+0111 1000 0101 0110 0011 0100 0001 0010
+
+In this case, the bits increase in significance from right to left
+within each 8-bit byte, but the low order bytes appear to the left of
+higher order bytes (i.e., in lower memory).
+
+3.2.2. Performance
+------------------
+
+Rewrite elements should generally be made as large as possible, since
+they determine the "chunk size" of BPO's pattern matching algorithm.
+For example, when rewriting code for a machine with 32-bit fixed-width
+instructions, using an 8-bit rewrite element makes BPO do
+approximately four times as much work (loads, stores, bitwise shifts
+and masks) as when using a 32-bit rewrite element.
+
+3.2.3. Implementation
+---------------------
+
+The type corresponding to the rewrite element is specified in the file
+'btype.h', and may be changed as needed.  For a given application and
+set of rules, both BOG and BPO must be compiled using the same rewrite
+element type.
+
+Note that rewrite elements need not be packed in a vector.  One may
+apply BPO to data stored in a linked list or other data structure by
+appropriately defining the rewrite element access macros (ASGN, INCR,
+DECR, GT, LOAD, STORE) in btype.h
+
+3.3. The BPO Interface
+----------------------
+
+Given a rewrite element of type T, BPO has the following signature:
+
+T* bpo (T* ih, T* it, T* il,
+	T* oh, T* ot, T* ol, 
+	T* (*nf)(T*), 
+	int *fdb, int *opb, 
+	int dp)
+
+'dp' is a debug flag: increasing positive values denote increasingly
+verbose output.  The other arguments are described in detail below.
+
+3.3.1. Buffer Pointers
+----------------------
+
+The first six arguments are pointers to input and output buffers
+allocated by the client of BPO.  In the '[io][htl]' notation above,
+'i' denotes the input buffer, 'o' denotes the output buffer, and 'h',
+'t', and 'l' are 'head', 'tail', and 'limit' respectively.
+
+The input head, ih, initially points to the beginning of the data to
+be rewritten; the tail, it, points to the end of the input data.  The
+input limit pointer, il, points to the low bound of the input buffer.
+The output pointers, oh and ol, delimit the beginning and end of the
+output buffer.  The output tail, ot, points to the place in the output
+buffer where BPO should start optimizing.
+
+Consider the following picture:
+
+     Output buffer
+     ---------------------
+     | a | b | . . .
+     ---------------------
+     ^               ^                   ^
+     |-- oh (fixed)  |-- ot (moves)      |-- ol (fixed)
+
+     Input buffer
+                   ---------------------
+                       . . . c | d | e |
+                   --------------------- 
+     ^                 ^               ^
+     |-- il (fixed)    |-- ih (moves)  |-- it (fixed)
+
+
+BPO works by popping one rewrite element at a time off the input
+buffer head (ih), and appending it to the output buffer tail (ot).  At
+each step, it tries to match input patterns of rules by scanning
+backwards through the output buffer beginning at ot.  If it finds a
+match, it pushes ot back (towards oh) by the length of the match, and
+prepends the output side of the rule to the head of the input buffer,
+moving ih towards il.
+
+ot must always remain in the output buffer delimited by [oh, ol].  It
+cannot move below oh because BPO does not match input patterns longer
+than ot-oh.  However, depending on the rewrite rules and the size of
+the output buffer provided by the user, ot may exceed ol.  This
+condition is checked by assertion in BPO.  See Section 6 for a
+discussion of assertions.
+
+Similarly, ih must always be bounded by [il, it].  ih cannot move past
+it, because, by definition, rewriting ends when ih reaches it.
+However, if the output side of a rule is longer than the input side,
+ih may grow down towards the input limit (il).  Again, the user is
+responsible for ensuring that the size of the buffer is adequate,
+given the expected input and the set of rewrite rules.  BPO raises an
+assertion failure if the limit is exceeded.
+
+The return value of BPO is the final value of ot, which points to the
+rewrite element immediately following the last rewrite element in the
+output.
+
+3.3.2. Increment Function
+-------------------------
+
+'nf' is a function that steps BPO through the input data: given a
+pointer into the input buffer, it returns the address of the next
+location at which BPO should attempt to perform a replacement.  In
+many cases (for example, on machines with fixed instruction width),
+the increment function can be simple:
+
+	T* add1 (T* p) { return p+1; }
+
+BPO optimizes this common case: passing nf==0 implies the increment
+function above.
+
+In other cases, however, the function may need to be more complex.
+For example, on machines with variable-width instructions it should be
+written to position the input cursor at the beginning of instructions,
+in order to avoid incorrect matches.
+
+3.3.3. Relocation Information
+-----------------------------
+
+'fdb' (fixed data buffer) denotes regions in the input that should not
+be rewritten.  'fdb' may be NULL (indicating that every part in the
+input may be rewritten), or it should point to location (ih-il) in a
+buffer of (it-il) integers.  In this way, there is a 1-1
+correspondence between the integers in the buffer pointed to by fdb
+and the rewrite elements in the input buffer between ih and it.  A
+value of 1 in the fdb buffer means that the corresponding element in
+the input buffer should not be rewritten, and a value of 0 indicates
+that it may be rewritten.  No pattern will match a region of the input
+that contains elements that should not be rewritten.
+
+'opb' is the output permutation buffer.  It may be NULL (indicating
+that no permutation information is necessary), or it should point to a
+buffer of (ol-oh) integers.  The client of BPO need not initialize
+this buffer to any value.  When BPO finishes running, opb[j], for
+0<=j<ot-oh, is a nonnegative integer denoting the position of the
+value oh[j] in the original input buffer (formerly pointed to by ih).
+This number is computed only for permutations of variables spanning
+entire rewrite elements.  New constant values introduced by the output
+sides of rules, as well as permutations of bits below the level of a
+rewrite element, are not tracked, and the corresponding locations in
+the output buffer have value -1.
+
+Here is an example:
+
+	rewrite unit: 8-bit byte
+	rule:	11111111a------- = a-------11111111 +
+	input:	1111111100000000
+	output: 0000000011111111
+	opb:	[ 1, -1 ]
+
+opb[0] is 1, indicating that byte 0 of the output buffer corresponds
+to byte 1 of the input buffer.  Note that, although byte 1 of the
+output buffer corresponds to byte 0 of the input buffer, opb[1] is -1,
+not 0.  This is because the output byte 11111111 was generated by a
+constant in the output side of the rule, not by the permutation of a
+variable.
+
+Similarly, consider the following:
+
+	rewrite unit: 8-bit byte
+	rule:	11111111a---b--- = a---b---11111111 +
+	input:	1111111100000000
+	output: 0000000011111111
+	opb:	[ -1, -1 ]
+
+In this case, the i/o effect of the rule is as in the first example,
+but opb[0] is -1 because the variables in this rule do not span an
+entire byte (rewrite unit), so their movement is not tracked.
+
+
+4. Using TOG and TPO
+--------------------
+
+TOG and TPO are the text analogs of the binary rewrite tools BOG and
+BPO.  The implementation of TPO relies on BPO.
+
+Using TOG and TPO for text rewriting works as follows:
+
+1. Write text rewrite rules specifying the optimizations.
+2. Compile these rules with TOG, obtaining two files: a set of inputs
+for BOG (henceforth "rules.bog"), and a file containing C data
+structures (henceforth "rules-str.c").
+3. Compile rules.bog with BOG, obtaining another file with C data
+structures (henceforth "rules-tab.c").
+4. Compile rules-str.c and rules-tab.c, and link the results with TPO,
+BPO, and an appropriate driver for TPO, obtaining a text optimizer.
+5. Run the text optimizer from (4).
+
+		   (1)	 text rules (ASCII)
+				|
+			        V
+		   (2)	     [ tog ]
+		                |-----------------------|
+				V			|
+			     rules.bog			|
+				|			|
+				V			|
+		   (3)	     [ bog ]			|
+				|			|
+				V			V
+			   rules-tab.c		   rules-str.c
+				|			|
+				V			|
+		   (4)	  [ C compiler ] <--------------|
+				|
+				V
+		   	    [ linker ]   <-- bpo.o, tpo.o, driver.o
+				|
+				V
+			  text optimizer
+
+The rest of this section describes this process in more detail.
+
+4.1. Text Rewrite Rules
+-----------------------
+
+The grammar for binary rewrite rules is as follows:
+
+rules	::=	rule rules | empty
+rule	::=	input output
+input	::=	line* '='
+output	::=	line* '+'
+line	::=	pattern | comment
+comment	::=	'#' <any character other than '\n'> '\n'
+pattern	::=	{ percent | other }* '\n'
+percent	::=	'%'{ '%' | ['a'-'z'] | ['A'-'Z'] }
+other	::=	<any string not containing '\n' or '%'>
+
+This language is line-based.  Empty lines (containing just a newline
+character) and lines beginning with '#' (comment lines) are ignored.
+All other lines are considered patterns.  Input sides of rules are
+terminated by '=', output sides by '+'.
+
+Wildcards (variables) are denoted by '%a'-'%z'.  Variable names are
+case insensitive.  Wildcards match everything until the character
+that follows the variable name.  For example, given the pattern
+'xx%ayy' and the input 'xxwwyy', 'a' is bound to 'ww'.  Given the same
+pattern, but the input 'xxyy', 'a' is bound to the empty string.
+
+It is possible to match '%' by writing '%%' in a pattern.  No
+character other than '%' and the alphabet letters may follow a '%'
+that is not immediately preceded by '%'.
+
+4.2. Running BOG
+----------------
+
+When using BOG to compile TOG output, be sure that the rewrite element
+type, T (defined in btype.h), is an integer type having the same size
+as the host machine's char *.  This is because TPO performs text
+rewrites by applying BPO to a buffer of array indices and pointers to
+text strings.
+
+4.3. The TPO Interface
+----------------------
+
+TPO has the following signature:
+
+void tpo (char *inbuf, char *outbuf, char *outlim, int rulep, int dp)
+
+'inbuf' denotes a 0-terminated input buffer.
+
+'outbuf' and 'outlim' are the low and high bounds, respectively, of
+the output buffer.  TPO aborts with an assertion failure if the output
+buffer is not sufficiently large to hold all the output that it
+generates.
+
+'rulep' determines the type of rule matching employed by TPO.  If
+rulep is 0, TPO patternizes each input line only once, on input: we
+call this "fixed-format" optimization.  If rulep is 1, TPO patternizes
+entire rules (rather than individual lines), and it patternizes and
+unpatternizes on every rule match and replace.  This is called
+"variable-format" optimization, and is slower but more powerful than
+the fixed-format kind.  See Section 4.4 for details.
+
+Finally, 'dp' is a debug flag: increasing positive values denote
+increasingly verbose output.
+
+4.4. Types of Patternization
+----------------------------
+
+Fixed-format optimization works as follows:
+
+1. TPO scans the input buffer.  For each input line, TPO searches a
+table of strings (created by TOG from the rewrite rules, and stored in
+a file that we called rules-str.c at the beginning of section 4), and
+if a string matches the input line, it appends to the pattern buffer
+the index of the string in the string table, and pointers to any
+matched wildcards.  If no string matches, it simply appends a pointer
+to the input string to the pattern buffer.
+
+2. Once the pattern buffer is complete, TPO invokes BPO, using the
+binary rewrite rules encoded in rules-tab.c.  BPO rewrites the pattern
+buffer according to these rules.
+
+3. The pattern buffer now contains indices of and pointers to strings
+on the output side of the rewrite rules.  TPO simply converts these
+indices and pointers into text in the output buffer.
+
+Here is a simplified picture of the process:
+
+		      tpo: patternize input
+				|
+				V
+		      |--> bpo: match
+	[ for all     |		|
+	  inputs,     |		V
+	  patterns ]  |	  bpo: replace
+		      |		|
+		      |---------|
+				V
+		        tpo: unpatternize
+
+Fixed-format optimization is fast but not very powerful.  Consider a
+rule whose output is the pattern 'jne %a', and another whose input is
+'j%a'.  The input pattern of the second rule should match the output
+of the first rule, but in practice it does not: the two pattern
+strings are different, so their indices in the string table are
+different.  The pattern does not match because BPO manipulates only
+indices and pointers, and cannot tell that the two different indices
+actually refer to matching strings.
+
+"Variable-format" optimization was developed to solve this problem.
+Rather than patternizing all lines at the beginning, TPO maintains a
+string representation of the input throughout the whole process.  It
+attempts to match entire input sides of rules to each line in the
+input, using traditional text pattern matching.  When it succeeds, it
+invokes the replacer (stitcher) from BPO to emit the appropriate
+output for that rule, and then converts the replacer's output
+(indices of and pointers to strings) to real strings.  In this way,
+TPO can continue to do full text matching on subsequent iterations,
+correctly handling cases like the 'jne'/'j' example above.
+
+This is summarized below:
+
+[for all inputs, patterns]
+      ---> tpo: match input pattern string against input
+      |				|
+      |				V
+      |			  bpo: replace
+      |				|
+      |				V
+      |		tpo: convert bpo output to string
+      |				|
+      --------------------------|
+				V
+
+
+5. Tips and Techniques
+----------------------
+
+This section gives random advice on using TPO and BPO.
+
+5.1. Using TPO to Generate BPO Input
+------------------------------------
+
+Writing BOG input files -- long strings of 1s, 0s and dashes -- can be
+painful.  It is possible to ease this task by writing such
+optimization rules using assembly syntax, and then writing other rules
+which basically implement an assembler: given an assembly language
+string, they emit some string of 1s and 0s.  These "assembler" rules
+can be applied to the optimization rules written in assembly language,
+creating optimization rules in binary format (i.e., suitable for use
+by BOG).
+
+Sample assembler rules for SPARC and x86 are packaged with the source
+code.
+
+5.2. Infinite Loops
+-------------------
+
+Beware of rules that match their own output.  They are especially easy
+to write accidentally for BOG/BPO.  Here is a trivial example:
+
+a---b--- = b---a--- +
+
+While this rule appears to be swapping the high and low nibbles of
+every byte in the input, it actually just locks BPO in an infinite
+loop, since it will keep matching the same (first) byte forever.
+
+It is usually easy to find the offending rule simply by turning on
+verbose output in either TPO or BPO.
+
+
+6. Bugs
+-------
+
+To improve performance, most buffers are currently automatic
+(stack-allocated with static size) or must be allocated by the caller
+of BPO.  Buffer limits are checked by assertions.  This works
+adequately well (errors are caught by assertion failures) in normal
+operation, but has undefined effects if the program is compiled with
+the preprocessor symbol NDEBUG defined (NDEBUG turns off assertion
+checks, verbose output, and all other debugging features).  Caveat
+hacker.
+
+Errors in rule files are always possible.
+
+
+----------------------------------------------------------------------
+
+Questions/comments/bug reports: contact maxp@lcs.mit.edu.
+
+$Date: 1997/12/05 01:25:42 $

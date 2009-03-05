@@ -1,0 +1,3 @@
+print "hi";
+sub f{}
+print "hi";

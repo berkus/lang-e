@@ -1,0 +1,221 @@
+#include <stdio.h>
+#include "benchmark.h"
+
+int compare(void *x, void *y) { return *(int *)x < *(int *)y; }
+
+/*
+ * Dynamic heap sort
+ */
+
+typedef void (*vi1_ptr)(void *, int);
+typedef void (*vi2_ptr)(void *, int, int);
+
+void (*adjust)(void *, int, int);
+void (*adjust2)(void *, int, int);
+void (*heapsort)(void *, int);
+void (*heapsort2)(void *, int);
+
+void cspec mkswap (int size, long * vspec src, long * vspec dst) {
+     long vspec tmp = local(long);
+     void cspec s = `{};
+     int i;
+
+     for(i = 0; i <  size/4; i++)
+	  s = `{		/* Assume size is a multiple of 4 */
+	       @s;
+	       tmp = src[$i]; 
+	       src[$i] = dst[$i]; 
+	       dst[$i] = tmp; 
+	  };
+     return s;
+}
+
+void cspec mkadjust (int size, int (*compare)(void *, void *)) {
+     void * vspec v = param(void *, 0);
+     int vspec m = param(int, 1);
+     int vspec n = param(int, 2);
+     long * vspec bk = local(long *);
+     long * vspec bj = local(long *);
+     assert(size % 4 == 0);
+     return `{
+	  char *b, *temp;
+	  int j, k;
+	  static long buf[128];
+
+	  b = ((char *)v - $size);
+	  temp = (char *)buf;
+
+	  j = m;
+	  k = m * 2;
+	  while (k <= n) { 
+	       if (k < n
+		   && (*$compare)(b + $size * k, b + $size * ( k + 1)))
+		    ++k;
+	       bk = (long *)(b + k * $size);
+	       bj = (long *)(b + j * $size);
+	       if ((*$compare)(bj, bk))
+		    @mkswap(size, bj, bk);
+	       j = k;
+	       k *= 2;
+	  }
+     
+     };
+}
+
+void cspec mkheapsort (int size) {
+     void * vspec v = param(void *, 0);
+     int vspec n = param(int, 1);
+     long * vspec b1 = local(long *);
+     long * vspec bj1 = local(long *);
+     assert(size % 4 == 0);
+     return `{
+	  char *b;
+	  int j;
+
+	  b = ((char *)v - $size);
+	  
+	  for (j = n/2; j > 0; j--) 
+	       (*adjust)(v,j,n);
+	  for (j = n - 1; j > 0; j--) {
+	       b1 = (long *)(b + $size);
+	       bj1 = (long *)(b + (j+1) * $size);
+	       @mkswap(size, b1, bj1);
+	       (*adjust)(v,1,j);
+	  }	
+     };
+}
+
+/*
+ * Static heap sort (H & S p.68)
+ */
+
+static void sswap (long *a, long *b, int size) {
+     long t;
+     int cnt = 0;
+     size /= 4;
+     while (cnt < size) {
+	  t = a[cnt];
+	  a[cnt] = b[cnt];
+	  b[cnt++] = t;
+     }
+}
+
+static void sadjust(void *v, int m, int n, int size, 
+		    int (*compare)(void *, void*)) {
+     char *b, *temp, *bk, *bj;
+     int j, k;
+     static long buf[128];
+
+     b = ((char *)v - size);
+     temp = (char *)buf;
+
+     j = m;
+     k = m * 2;
+     while(k <= n) { 
+	  if(k < n && compare(b + size * k, b + size * ( k + 1)))
+	       ++k;
+	  bk = b + k *size;
+	  bj = b + j * size;
+
+	  if(compare(bj, bk)) {
+	       sswap((long*)bj,(long*)bj,size);
+	  }
+	  j = k;
+	  k *= 2;
+     }
+}
+
+void sheapsort(void *v, int n, int size, int (*compare)(void *, void *)) {
+     char *b, *temp, *b1, *bj1;
+     int j;
+     static long buf[128];
+
+     temp = (char *)buf;
+     b = ((char *)v - size);
+
+     for(j = n/2; j > 0; j--) 
+	  sadjust(v,j,n, size, compare);
+     for(j = n - 1; j > 0; j--) {
+	  b1 = b + size;
+	  bj1 = b + (j+1) * size;
+	  sswap((long*)b1,(long*)bj1,size);
+	  sadjust(v, 1, j, size, compare);
+     }	
+}
+
+/*
+ * Driver
+ */
+
+struct elem { int x; int y; int z; };
+
+dumpelem(struct elem *array, int n) {
+	int i;
+
+	for(i = 0; i < n; i++)
+	     printf("array[%d] = {%d,%d,%d}\n", i, 
+		    array[i].x, array[i].y, array[i].z);
+}
+
+int main(int argc, char **argv) { 
+     struct elem *array;
+     struct elem *array2;
+     int i, ninsn = 0;
+
+     doargs(argc, argv);
+     printf("## heap ##\n");
+
+     array = (struct elem *)malloc(ndata*sizeof (struct elem));
+     array2 = (struct elem *)malloc(ndata*sizeof (struct elem));
+
+     srandom(1);
+     for (i = 0; i < ndata; i++)
+	  array[i].x = array2[i].x = random();
+
+     if (optDCG) {
+				/* Warm the cache */
+	  adjust2 = compile(mkadjust(sizeof array[0], compare), void);
+	  if (optCount == 1) ninsn += tc_ninsn();
+	  heapsort2 = compile(mkheapsort(sizeof array[0]), void);
+	  if (optCount == 1) ninsn += tc_ninsn();
+
+	  SWON("compilation");
+	  for(i = 0; i < ncomp; i++) {
+	       adjust = compile(mkadjust(sizeof array[0], compare), void);
+	       heapsort = compile(mkheapsort(sizeof array[0]), void);
+	       decompile(adjust);
+	       decompile(heapsort);
+	  }
+	  SWOFF;
+
+	  adjust = adjust2;
+	  heapsort = heapsort2;
+	  if (!adjust || !heapsort) return;
+
+	  if (optCount)
+	       printf("Number of insns: %d\n", ninsn);
+
+	  if (optDump == 1) {
+	       printf("Assembly for 'adjust':\n");
+	       v_dump((void *)adjust);
+	       printf("Assembly for 'heapsort':\n");
+	       v_dump((void *)heapsort);
+	  }
+
+	  (*heapsort)(array, ndata); /* Warm the cache */
+	  SWON("run");
+	  for(i =0; i < nruns; i++)
+	       (*heapsort)(array, ndata);
+	  SWOFF;
+	  if (optVerbose)
+	       dumpelem(array, ndata);
+     } else {
+	  sheapsort(array2, ndata, sizeof array[0], compare); /* Warm cache */
+	  SWON("run");
+	  for(i =0; i < nruns; i++)
+	       sheapsort(array2, ndata, sizeof array[0], compare);
+	  SWOFF;
+	  if (optVerbose)
+	       dumpelem(array2, ndata);
+     }
+}

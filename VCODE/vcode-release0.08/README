@@ -1,0 +1,14 @@
+This is a beta release of vcode.  It works on MIPS, SPARC, and Alpha
+architectures.  A (manually maintained) mailing list to discuss vcode
+has been setup: email engler@lcs.mit.edu to get on it.
+
+To build vcode type
+	`perl install'
+
+Useful information will be printed during the installation.  
+
+Contents:
+	./vcode-src contains the vcode library and header files
+	./examples contains a number of vcode examples
+	./tests contain some regression tests.
+	./doc contains a vcode tutorial and the original pldi paper

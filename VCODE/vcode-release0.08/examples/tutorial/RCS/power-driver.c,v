@@ -1,0 +1,35 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.23.00.22.14;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* Simple program to specialize power to compute x^3.  */
+int main(void) {
+	/* NOTE: we must cast the function pointer to specify
+	   that the function expects a floating point parameter.
+	   Otherwise C will, by default, treat the value as an
+	   integer. */
+	float (*pow3)(float) = (void *)specialize_power(3);
+
+	printf("9.0 ^ 3 = %f\n", pow3(9.0));
+	return 0;
+}
+@

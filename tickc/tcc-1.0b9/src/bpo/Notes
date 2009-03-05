@@ -1,0 +1,56 @@
+* find intersection of constant bits
+* find critical window
+
+Originally I thought that the intersection of constant bits should be
+represented as an array of masks as long as the shortest rule input
+side.  This way the critical window could span more than one rewrite
+unit, giving more opportunity to find overlap of constant bits on the
+first try.  But this may not work well:
+1. hard to implement jump tables/mrst using bits scattered on
+different rewrite units -- would need to do many shifts and ors, etc.
+2. may require multiple loads (in addition to shifts, etc.) per decision
+3. jump tables are likely to be huge
+
+
+###############################################################################
+
+How does metamrst work?
+
+Given a list R of rules, find the minimum input length l of a rule r in R.
+
+Find the position p within l with the most critical window
+
+###############################################################################
+
+
+Different cases:
+
+(1)
+11111111=00000000+
+10101010=01010101+
+
+(2)
+1111a---=11a---11+
+0000a---=00a---00+
+
+(3)
+(a)
+1111a---=11111111+
+a---0000=00000000+
+(b)
+a---0000=00000000+
+1111a---=11111111+
+
+(4)
+(a)
+00000000=11111111+
+0000000000000000=1111111111111111+
+(b)
+0000000000000000=1111111111111111+
+00000000=11111111+
+
+(5)
+Example of when length-based selection matters:
+0001 0000
+0000
+0010 0000

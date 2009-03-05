@@ -1,0 +1,136 @@
+.PHONY: all clean dist-clean install tags
+
+VPATH	= 	@srcdir@
+
+ifneq ($(TCC),1)
+T_CPU	=	@target_cpu@
+T_OSV	=	@target_os@
+T_OS	=	$(strip $(patsubst ultrix%,ultrix,\
+		$(patsubst sunos%,sunos,$(patsubst solaris%,solaris,\
+		$(patsubst linux%,linux,$(patsubst openbsd%,openbsd,\
+		$(T_OSV)))))))
+
+MODE	=	debug
+
+prefix	=	@prefix@
+srcdir	=	@srcdir@
+builddir=	@prefix@/build
+exec_prefix =	@exec_prefix@
+bindir	=	@bindir@
+includedir =	@includedir@/$(T_CPU)/$(T_OS)
+libdir	=	@libdir@
+infodir =	@infodir@
+mandir	=	@mandir@
+
+ifeq ($(T_OS),sstrix)
+# Simplesim configuration information
+# Simplesim home directory.  It should have subdirectories called
+#  "ss{big,little}-na-sstrix/{bin,include,lib}".
+SSDIR	=
+# Paths to simplesim versions of gcc, nm, ar, ranlib, as, and ld
+SSCC	=
+SSNM	=
+SSAR	=
+SSRANLIB=
+else
+endif
+endif
+
+CFLAGS1	=	-Wall $(xdefs) -I. -I@srcdir@ -I$(includedir)/tickc
+ifeq ($(MODE),optimize)
+CFLAGS	=	$(CFLAGS1) -O3 -DNDEBUG
+else
+CFLAGS	=	$(CFLAGS1) -O0 -ggdb -Wno-unused
+endif
+
+INSTALL =	@INSTALL@
+LN_S	=	@LN_S@
+PERL	=	@PERL@
+TAGS	=	@TAGS@
+
+ifeq ($(T_OS),sstrix)
+CC	= 	$(SSCC)
+RANLIB	=	$(SSRANLIB)
+AR	=	$(SSAR)
+NM	=	$(SSNM)
+else
+CC	= 	@CC@
+RANLIB	=	@RANLIB@
+AR	=	@AR@
+NM	=	@NM@
+endif
+
+DEFS	=	@srcdir@/op.def
+AUTOH	=	macros-gen.h op2class.h opcode.h pp.h
+AUTOC	=	op2class.c
+SRCS	=	cfg.c icode.c li-full.c li-scc.c ll.c \
+		reg.c reg-gc.c reg-ls.c reg-manager.c
+HDRS	=	$(AUTOH) icode-arch.h @srcdir@/util.h \
+		@srcdir@/cfg.h @srcdir@/icode-internal.h @srcdir@/icode.h \
+		@srcdir@/li.h @srcdir@/reg-manager.h \
+		@srcdir@/reg.h @srcdir@/macros-pat.h @srcdir@/macros-prt.h
+OBJS	=	$(subst .c,.o,$(SRCS)) $(subst .c,.o,$(AUTOC))
+ICODE	=	libicode.a
+
+all: install
+
+install: $(ICODE) $(HDRS)
+	cp @srcdir@/gen/xlate.pl .
+	nmregexp=`echo $(NM) | sed 's/\//\\\ \//g' | sed 's/ //g'`; \
+	$(PERL) -pi -e "s/__NM__/$$nmregexp/g" xlate.pl ; \
+	defregexp=`echo "$(libdir)/$(notdir $(DEFS))" | \
+		sed 's/\//\\\ \//g' | sed 's/ //g'`; \
+	$(PERL) -pi -e "s/__OPDEF__/$$defregexp/g" xlate.pl ;\
+	$(INSTALL) -m 0755 xlate.pl $(libdir); \
+	for p in $(ICODE) $(DEFS); do \
+		$(INSTALL) -m 0644 $$p $(libdir); \
+	done
+	for p in $(HDRS); do \
+		$(INSTALL) -m 0644 $$p $(includedir)/tickc; \
+	done
+	$(RANLIB) $(libdir)/$(ICODE)
+
+clean:
+	rm -f $(AUTOH) $(AUTOC) $(ICODE) *.[do] test-* core *~
+	rm -f icode-arch.c icode-arch.h xlate.pl
+	rm -f $(addprefix $(includedir)/tickc/,$(notdir $(HDRS)))
+
+dist-clean:	clean
+	rm -f @srcdir@/TAGS
+
+tags:
+	cd @srcdir@; $(TAGS) -t *.c *.h
+
+$(ICODE): $(OBJS)
+	$(AR) ruv $@ $^; $(RANLIB) $@
+
+$(addprefix @srcdir@/,$(AUTOH)): @srcdir@/op.def @srcdir@/gen/$(@F:.h=-h.pl)
+	$(PERL) @srcdir@/gen/$(@F:.h=-h.pl) < @srcdir@/op.def > $(@F)
+
+$(addprefix @srcdir@/,$(AUTOC)): @srcdir@/op.def @srcdir@/gen/$(@F:.c=-c.pl)
+	$(PERL) @srcdir@/gen/$(@F:.c=-c.pl) < @srcdir@/op.def > $(@F)
+
+$(AUTOC:.c=.o): $(AUTOC)
+	$(CC) $(CFLAGS) -c $(@F:.o=.c)
+
+%.d: %.c
+	$(SHELL) -ec "$(CC) -M -MG $(CFLAGS) $< | \
+		sed 's/$*\\.o[ :]*/$*.o $@: /g' > $@"
+
+%: %.c
+	$(CC) $(CFLAGS) -L$(libdir) -o $@ $^ -licode -lvcode
+
+icode-arch.c:
+	@if [ ! -f $@ ]; then ln -s @srcdir@/config/$(T_CPU)-$(T_OS).c $@; fi
+icode-arch.h:
+	@if [ ! -f $@ ]; then ln -s @srcdir@/config/$(T_CPU)-$(T_OS).h $@; fi
+
+test-%.c: @srcdir@/test-%.pl
+	$(PERL) @srcdir@/$(@:.c=.pl) > $@
+test-%.o: test-%.c
+	$(CC) $(CFLAGS) -c $(@:.o=.c)
+test-%: test-%.o
+	$(PERL) @srcdir@/xlate.pl none @srcdir@/op.def $@-xlate.c $@.o
+	$(CC) $(CFLAGS) -L$(libdir) -o $@ $@-xlate.c $@.o -licode -lvcode
+
+include $(subst .c,.d,$(SRCS))

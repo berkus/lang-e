@@ -1,0 +1,14 @@
+	
+Manifest:
+	+ dcg_calc is a simple compiling calculator.  
+	+ calc is a simple interpreting calculator.
+	+ test contains sample input.
+
+To extend the DCG calculator to include iteration, variables, etc. it
+is probably cleanest to first build up IR trees and then use vcode
+to compile them.  It would be faster to compile using vcode directly,
+but more clumsy since the resultant machine code would have to be copied 
+to the correct place in the instruction stream.
+
+BUG: / * % are not handled correctly on the sparc (the backend trashs
+ 	temporary registers during the function call to these routines).

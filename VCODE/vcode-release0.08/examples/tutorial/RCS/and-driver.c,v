@@ -1,0 +1,32 @@
+head	1.1;
+access;
+symbols;
+locks
+	engler:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.03.22.20.08.52;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include "vcode.h"
+#include "and.c"
+int main(void)  {
+	v_uptr up = mk_and();
+
+	printf("1 and 1 = %d, 1 and 0 = %d\n", up(1,1), up(1,0));
+	return 0;
+}
+@

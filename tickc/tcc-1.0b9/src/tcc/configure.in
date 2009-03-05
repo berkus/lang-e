@@ -1,0 +1,22 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(bprint.c)
+
+AC_CONFIG_AUX_DIR(../../config)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+AC_HEADER_STDC
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+
+dnl Checks for library functions.
+AC_TYPE_SIGNAL
+
+AC_OUTPUT(Makefile)

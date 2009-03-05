@@ -1,0 +1,45 @@
+CC=gcc
+# LCCFLAGS= -g -v -pg -I/home/am2/maxp/tickc/include/sparc/sun
+GCCFLAGS= -O2 -fpcc-struct-return -ansi -pedantic -Wall 
+CFLAGS= $(GCCFLAGS)
+LIBS=
+ARCH=sparc
+TST=tst
+HDRS=vcode.h vcode-internal.h vcode-macros.h
+# VOBJS= link.o $(ARCH)-gen.o gen.o flushcache.o
+# VSRC= link.c $(ARCH)-gen.c gen.c
+VOBJS= flushcache.o link.o $(ARCH)-gen.o gen.o register.o xlate.o call.o poly-insns.o fp-imm.o sparc-pseudo.o sparc-dis.o portable-insts.o
+VSRC= link.c $(ARCH)-gen.c gen.c register.c xlate.c call.c poly-insns.c fp-imm.c sparc-pseudo.S sparc-dis.c portable-insts.c
+
+
+DISDIR=sparc-dis
+
+all: binary.h vcode-macros.h vcode.lib.a
+
+vcode.lib.a: $(VOBJS) vcode.h
+	ar ruv vcode.lib.a $(VOBJS) $(DISDIR)/*.o
+	ranlib vcode.lib.a
+
+binary.h: $(ARCH)-bin
+	bin/bpp/bpp < $(ARCH)-bin > binary.h
+
+sparc-pseudo.o: sparc-pseudo.S
+	gcc -c sparc-pseudo.S
+
+vcode-macros.h: binary.h $(ARCH).md spec.pl
+	perl spec.pl < $(ARCH).md > vcode-macros.h
+
+flushcache.o: flushcache.c vcode.h vcode-config.h vcode-macros.h demand.h
+	gcc -O -c $<
+
+$(ARCH)-gen.c: vcode-internal.h 
+gen.c: vcode-internal.h 
+
+depend:
+	makedepend $(VSRC)
+
+clean:
+	rm -f *.o dump.f core vcode.lib.a *.Counts *.pixie *.Addrs vcode-macros.h binary.h
+
+cleanx:
+	rm -f vcode-config.h makefile

@@ -1,0 +1,3 @@
+./stdio.h is taken from include/mips/ultrix for lcc 3.4.  It does not contain
+typedefs for or uses of va_list or any other stdarg macros.  This is necessary
+for tcc to correctly quote stdarg macros when in `C-to-C mode.

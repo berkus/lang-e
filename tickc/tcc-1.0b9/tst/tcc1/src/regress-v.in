@@ -1,0 +1,56 @@
+src: x1.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x1.0.out
+
+src: x2.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x2.0.out
+
+src: x3.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x3.0.out
+
+src: x4.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x4.0.out
+
+src: x5.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x5.0.out
+
+src: x6.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x6.0.out
+
+src: x8.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x8.0.out
+
+src: x11.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x11.0.out
+
+src: x12.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x12.0.out
+
+src: x13.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x13.0.out
+
+src: x14.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x14.0.out
+
+src: x15.c
+tcc: -Wg-O0 -Wx-O0 -V
+err: 
+err0: ref/x15.0.C.err
+
+src: x16.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x16.0.out
+
+src: x17.c
+tcc: -Wg-O0 -Wx-O0 -V
+out0: ref/x17.0.out

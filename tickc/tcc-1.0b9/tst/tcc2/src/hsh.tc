@@ -1,0 +1,92 @@
+#include <stdio.h>
+#include "benchmark.h"
+
+enum {TSIZE = 32};
+
+struct hte {
+     int val;			/* key that entry is associated with */
+     struct hte *next;		/* pointer to next entry */
+};
+
+/* hash table structure */
+struct ht {
+     int scatter;		/* value used to scatter keys */
+     int norm;			/* value used to normalize */
+     struct hte **hte;		/* vector of pointers to hash table entries */
+};
+
+typedef struct hte *(*hptr)(int val);
+
+hptr mk_hash(struct ht *ht) {
+     int vspec val = param(int,0);
+     void cspec hc;       
+
+     hc = `{
+	  struct hte *hte;
+	  hte = ($ht->hte)[(@val * $ht->scatter / $ht->norm)&(TSIZE-1)];
+	  while (hte && hte->val != @val)
+	  hte = hte->next;
+	  return hte;
+     };
+     return compile(hc, struct hte *);
+}
+
+struct hte * hlookup(struct ht *ht, int val) {
+     struct hte *hte;
+     hte = (ht->hte)[(val * ht->scatter / ht->norm)&(TSIZE-1)];
+     while (hte && hte->val != val)
+	  hte = hte->next;
+     return hte;
+}
+
+void main(int argc, char **argv) {
+     struct ht table;
+     struct hte *res;
+     hptr f, f2;
+     int i;
+
+     doargs(argc, argv);
+     printf("## hsh ##\n");
+
+     table.scatter = 17;
+     table.norm = 5;
+     table.hte = (struct hte**)malloc(TSIZE*sizeof(struct hte *));
+
+     bzero((char*)table.hte,TSIZE*sizeof(struct hte *));
+     table.hte[10] = (struct hte*)malloc(sizeof(struct hte));
+     table.hte[10]->val = 3;
+
+     if (optDCG) {
+	  f2 = mk_hash(&table);	/* Warm the cache */
+
+	  SWON("compilation");
+	  for (i = 0; i < ncomp; i++) {
+	       f = mk_hash(&table);
+	       decompile(f);
+	  }
+	  SWOFF;
+
+	  f = f2;
+	  if (!f) return;
+	  dump(f);
+
+	  (*f)(3); (*f)(5);	/* Warm the cache */
+	  SWON("run");
+	  for (i = 0; i < nruns; i++) {
+	       (*f)(3); (*f)(5);
+	  }
+	  SWOFF;
+	  if (optVerbose)
+	       printf("Found: %d %d\n",(*f)(3) ? 1 : 0, (*f)(5) ? 1 : 0);
+     } else {
+	  hlookup(&table,3); hlookup(&table,5);	/* Warm the cache */
+	  SWON("run");
+	  for (i = 0; i < nruns; i++) {
+	       hlookup(&table,3); hlookup(&table,5);
+	  }
+	  SWOFF;
+	  if (optVerbose)
+	       printf("Found: %d %d\n", hlookup(&table,3) ? 1 : 0, 
+		      hlookup(&table,5) ? 1 : 0);
+     }
+}

@@ -1,0 +1,140 @@
+.PHONY: all bog clean clean-all dist-clean install tags
+.PRECIOUS: %.c %.o
+
+T_CPU	=	@target_cpu@
+T_OSV	=	@target_os@
+T_OS	=	$(strip $(patsubst ultrix%,ultrix,\
+		$(patsubst sunos%,sunos,$(patsubst solaris%,solaris,\
+		$(patsubst linux%,linux,$(patsubst openbsd%,openbsd,\
+		$(T_OSV)))))))
+TARGET	=	bpo-$(T_CPU)-$(T_OS)
+
+VPATH	= 	@srcdir@
+
+ifeq ($(T_OS),sstrix)
+DCC	= 	$(SSCC)
+SCC	=	@CC@
+CFLAGS3	=	-D__SIMPLE_SCALAR__
+else
+DCC	= 	@CC@
+SCC	=	@CC@
+CFLAGS3	=
+endif
+CC	=	$(SCC)
+
+CFLAGS1D=	-O0 -ggdb
+CFLAGS1O=	-O3 -DNDEBUG
+ifeq ($(MODE),optimize)
+CFLAGS1	=	$(CFLAGS1O)
+else
+CFLAGS1	=	$(CFLAGS1D)
+endif
+BTYPE	=	-D__BYTE__
+CFLAGS2	=	$(CFLAGS3) -Wall -Wno-unused -idirafter @srcdir@ \
+			-D__bpo_no_relo__
+
+CFLAGS	=	$(CFLAGS1) $(CFLAGS2)
+CFLAGSD	=	$(CFLAGS1D) $(CFLAGS2)
+
+TAGS	=	@TAGS@
+GREP	=	@GREP@
+RM	=	@RM@ -f
+
+SOBJ	=	list.o mem.o string.o
+
+
+# For now we don't install TARGET anywhere -- vcode gets it from build dir.
+install: $(TARGET).o
+
+# Suffixes:
+#	.tog	patterns for tog; text patterns to specify text-to-text opts
+#	.bog	patterns for bog; bit patterns to specify binary opts
+#	.t2b	patterns for tog; text to binary ("assembler") translation
+#	.tfb	data for tpo; "text-format-binary", ie. asm-like specs of
+#		 binary opts; must be used together with .t2b to create a .bog
+
+# Optimizers
+T = $(TARGET)
+
+$(TARGET).o: 	@srcdir@/arch/$(T_CPU)/$(T_OS).tfb \
+		@srcdir@/arch/$(T_CPU)/$(T_OS).t2b \
+		@srcdir@/arch/$(T_CPU)/$(T_OS).status \
+		@srcdir@/*.c @srcdir@/*.h
+	@if [ x`cat @srcdir@/arch/$(T_CPU)/$(T_OS).status` != xok ]; then\
+		echo No bpo specs for $(T_CPU)-$(T_OS): making dummy bpo; \
+		$(DCC) $(CFLAGS) -D__VCODE__ -c -o $@ @srcdir@/bpo-dummy.c; \
+	else \
+		$(MAKE) BTYPE=-D__LONG__ CFLAGS="$(CFLAGSD)" bog tog; \
+		echo \#; echo Creating text-to-binary translator; \
+		tog -t $(T)-t1.c -r $(T)-r1.bog \
+			@srcdir@/arch/$(T_CPU)/$(T_OS).t2b; \
+		bog $(T)-r1.bog > $(T)-r1.c; \
+		$(MAKE) BTYPE=-D__LONG__ CFLAGS="$(CFLAGSD)" \
+			$(T)-t1.o $(T)-r1.o bpo.o tpo.o tpot.o $(SOBJ); \
+		$(CC) -o $(T)-gen $(T)-t1.o $(T)-r1.o \
+			bpo.o tpo.o tpot.o $(SOBJ); \
+		echo \#; echo Invoking text-to-binary translator on \
+			text-form rules; \
+		$(T)-gen -r @srcdir@/arch/$(T_CPU)/$(T_OS).tfb > $(T)-r2.bog; \
+		$(MAKE) BTYPE=-D__VCODE__ CFLAGS="$(CFLAGSD)" bog; \
+		echo \#; echo Creating binary peephole optimizer \
+			\"$(TARGET)\";\
+		bog -t $(T)-r2.bog > $(T)-r2.c; \
+		$(DCC) $(CFLAGS) -D__VCODE__ -c -o $@ $(T)-r2.c; \
+	fi
+
+%-bpo: %.bog
+	$(MAKE) bog
+	bog -t $< > $*-t.c
+	$(MAKE) CC=$(DCC) $*.o $*-t.o
+	$(DCC) $(CFLAGS) -o $* $*.o $*-t.o
+
+%-tpo: %.tog tog bog
+	tog -t $*-t1.c -r $*-r.bog $<
+	bog -t $*-r.bog > $*-t2.c
+	$(MAKE) BTYPE=-D__LONG__ tpot.o $*-t1.o $*-t2.o tpo.o $(SOBJ)
+	$(CC) -o $* tpot.o $*-t1.o $*-t2.o tpo.o $(SOBJ)
+
+# Optimizer Generators
+bpo.o: btype.h bpo.c bpo.h
+bog.o: btype.h bog1.c bog2.c cwmisc.c cwmisc.h list.h \
+	mem.h set.h string.h sym.h
+
+# Phony rule: remakes bog even if it is up-to-date with sources, if bog.type
+# (the type of the last bog build) does not match BTYPE.a
+bog:
+	@touch bog.type; \
+	$(MAKE) -q bog-real; \
+	if [ x$$? = x1 -o x`cat bog.type` != x$(BTYPE) ]; then \
+		echo \#; echo Building bog with BTYPE=\"$(BTYPE)\"; \
+		$(MAKE) bog-clean; \
+		$(MAKE) bog-real; \
+		echo "$(BTYPE)" > bog.type; \
+	fi
+
+bog-real: bog1.o bog2.o cwmisc.o set.o sym.o $(SOBJ)
+	$(CC) $(CFLAGS) $(BTYPE) -o bog $^
+
+bog-clean:
+	@rm -f bog1.o bog2.o cwmisc.o set.o sym.o $(SOBJ)
+
+
+tog: $(addsuffix .o, list mem string tog)
+	@echo \#; echo Building tog
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Other stuff
+%.o: %.c
+	$(CC) $(CFLAGS) $(BTYPE) -c $<
+
+clean:
+	$(RM) `ls -1 *.o | $(GREP) -v '$(TARGET)\.o'` *.c *.bog bpo-*-gen
+
+clean-all: clean
+	$(RM) bog tog $(TARGET).o bog.type @srcdir@/TAGS
+
+dist-clean:
+	$(RM) *
+
+tags:
+	cd @srcdir@; $(TAGS) -t *.c *.h

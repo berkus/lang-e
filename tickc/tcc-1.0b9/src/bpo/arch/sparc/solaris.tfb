@@ -1,0 +1,58 @@
+mov r%a, r%b
+sll r%b, %c, r%b
+=
+sll r%a, %c, r%b
++
+mov r%a, r%b
+inc r%b
+mov r%b, r%a
+=
+inc r%a
++
+mov %a, r%b
+mov r%c, r%d
+cmp r%b, r%d
+=
+mov %a, r%b
+cmp r%b, r%c
++
+mov r%a, r%b
+cmp r%b, %c
+=
+cmp r%a, %c
++
+mov r%a, r%b
+mov r%c, r%d
+cmp r%b, r%d
+=
+cmp r%a, r%c
++
+mov %a, r%b
+mov r%b, r%c
+=
+mov %a, r%c
++
+mov r%a, r%b
+mov r%c, r%d
+add r%b, r%d, r%b
+mov r%b, r%a
+=
+add r%a, r%c, r%a
++
+mov r%a, r%b
+mov r%c, r%d
+st r%d, [r%e+r%b]
+=
+st r%c, [r%e+r%a]
++
+mov r%a, r%b
+ld [r%c+r%b], r%d
+=
+ld [r%c+r%a], r%d
++
+mov r%a, r%b
+add r%c, r%b, r%d
+mov r%b, r%a
+=
+add r%c, r%a, r%d
++

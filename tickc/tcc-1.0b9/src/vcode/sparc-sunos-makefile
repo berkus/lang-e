@@ -1,0 +1,82 @@
+CC=gcc
+BPOCFLAGS=-D__VCODE__
+BPOOBJS=../bpo/bpo-sparc-sunos.o
+ifeq ($(MODE),optimize)
+GCCFLAGS= -O3 -DNDEBUG -fpcc-struct-return -ansi -pedantic -Wall
+else
+GCCFLAGS= -O -ggdb -fpcc-struct-return -ansi -pedantic -Wall
+endif
+CFLAGS= $(GCCFLAGS) $(BPOCFLAGS)
+LIBS=
+VARCH=sparc
+TST=tst
+HDRS=vcode.h vcode-internal.h vcode-macros.h
+VOBJS= flushcache.o link.o $(VARCH)-gen.o gen.o register.o xlate.o call.o poly-insns.o fp-imm.o sparc-pseudo.o sparc-dis.o mult.o
+VSRC= link.c $(VARCH)-gen.c gen.c register.c xlate.c call.c poly-insns.c fp-imm.c sparc-pseudo.S sparc-dis.c mult.c
+
+DISDIR=sparc-dis
+
+all: binary.h vcode-macros.h vcode.lib.a
+
+vcode.lib.a: $(BPOOBJS) $(VOBJS) vcode.h
+	ar ruv vcode.lib.a $(BPOOBJS) $(VOBJS) $(DISDIR)/*.o
+	ranlib vcode.lib.a
+
+binary.h: $(VARCH)-bin
+	./bpp/bpp < $(VARCH)-bin > binary.h
+
+sparc-pseudo.o: sparc-pseudo.S
+	gcc -c sparc-pseudo.S
+
+vcode-macros.h: binary.h $(VARCH).md spec.pl
+	perl spec.pl fast < $(VARCH).md > vcode-macros.h
+
+flushcache.o: flushcache.c vcode.h vcode-config.h vcode-macros.h demand.h
+	gcc -O2 -c $<
+
+$(VARCH)-gen.c: vcode-internal.h 
+gen.c: vcode-internal.h 
+
+# code for cmul
+CMUL = 4096
+mult.h: booth-gen
+	./booth-gen $(CMUL) > mult.h
+booth-gen: booth-gen.c
+	$(CC) $(CFLAGS) -o booth-gen booth-gen.c
+
+depend:
+	makedepend $(VSRC)
+
+clean:
+	rm -f *.o dump.f core vcode.lib.a *.Counts *.pixie *.Addrs vcode-macros.h binary.h
+
+cleanx:
+	rm -f vcode-config.h makefile
+# DO NOT DELETE
+
+link.o: vcode.h vcode-config.h vcode-macros.h demand.h /usr/include/stdio.h
+link.o: binary.h /usr/include/assert.h vcode-portable-insts.h
+sparc-gen.o: /usr/include/assert.h /usr/include/stdio.h /usr/include/memory.h
+sparc-gen.o: vcode-internal.h vcode.h vcode-config.h vcode-macros.h demand.h
+sparc-gen.o: binary.h vcode-portable-insts.h
+gen.o: /usr/include/assert.h /usr/include/stdio.h vcode-internal.h vcode.h
+gen.o: vcode-config.h vcode-macros.h demand.h binary.h vcode-portable-insts.h
+register.o: vcode-internal.h vcode.h vcode-config.h vcode-macros.h demand.h
+register.o: /usr/include/stdio.h binary.h /usr/include/assert.h
+register.o: vcode-portable-insts.h /usr/include/string.h
+xlate.o: vcode-internal.h vcode.h vcode-config.h vcode-macros.h demand.h
+xlate.o: /usr/include/stdio.h binary.h /usr/include/assert.h
+xlate.o: vcode-portable-insts.h
+call.o: /usr/include/stdio.h vcode-internal.h vcode.h vcode-config.h
+call.o: vcode-macros.h demand.h binary.h /usr/include/assert.h
+call.o: vcode-portable-insts.h
+poly-insns.o: vcode.h vcode-config.h vcode-macros.h demand.h
+poly-insns.o: /usr/include/stdio.h binary.h /usr/include/assert.h
+poly-insns.o: vcode-portable-insts.h
+fp-imm.o: vcode-internal.h vcode.h vcode-config.h vcode-macros.h demand.h
+fp-imm.o: /usr/include/stdio.h binary.h /usr/include/assert.h
+fp-imm.o: vcode-portable-insts.h
+sparc-dis.o: vcode-internal.h vcode.h vcode-config.h vcode-macros.h demand.h
+sparc-dis.o: /usr/include/stdio.h binary.h /usr/include/assert.h
+sparc-dis.o: vcode-portable-insts.h
+mult.o: vcode.h mult.h

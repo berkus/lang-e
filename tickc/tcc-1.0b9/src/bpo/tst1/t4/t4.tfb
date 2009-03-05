@@ -1,0 +1,23 @@
+mov %a, dword ptr [ %b + imm8 c------- ]
+mov byte ptr [ %a ], imm8 d-------
+mov %e, dword ptr [ %b + imm8 c------- ]
+add %e, imm8 00000001
+mov dword ptr [ %b + imm8 c------- ], %e
+=
+mov %a, dword ptr [ %b + imm8 c------- ]
+mov byte ptr [ %a ], imm8 d-------
+inc dword ptr [ %b + imm8 c------- ]
++
+add eax, imm8 00100000
+=
+add eax, imm8 00010000
+add eax, imm8 00010000
++
+pop %a
+pop %b
+=
+pop %a
+nop
+pop %b
+nop
++

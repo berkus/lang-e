@@ -1,0 +1,3 @@
+The makefile in this directory automatically runs regression tests (type `make').
+With the exception of ``regress'' (which can take 10 minutes to compile)
+the tests complete quickly.

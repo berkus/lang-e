@@ -1,0 +1,21 @@
+EXPECT: 4 5
+4 5
+EXPECT: 10
+10
+EXPECT: 11
+11
+EXPECT: Warning: infinite loop
+DCG Warning: run-time constant may cause infinite loop in 'do-while' statement
+EXPECT: woah! woah!
+woah!
+woah!
+EXPECT: Warning: infinite loop
+DCG Warning: run-time constant may cause infinite loop in 'do-while' statement
+EXPECT: woah!
+woah!
+EXPECT: Warning: infinite loop
+DCG Warning: run-time constant may cause infinite loop in 'for' statement
+warning: dead code; i_find uses null register
+warning: dead code; i_store uses null register
+EXPECT: hello
+hello

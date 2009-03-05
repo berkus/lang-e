@@ -1,0 +1,1375 @@
+head	1.3;
+access;
+symbols;
+locks
+	engler:1.3; strict;
+comment	@# @;
+
+
+1.3
+date	96.03.26.19.45.44;	author engler;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	96.03.19.23.29.30;	author engler;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	95.12.14.22.44.33;	author engler;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@# Note: If the given instruction template is not available, will have
+# to be added by hand.
+
+# Core instructions that are not micro-tested:
+#		set
+#		call
+#		j
+#		nop
+#		jal
+#
+# Need to add ldea
+
+%type = (
+        "uc", "unsigned char",
+        "c", "char",
+        "us", "unsigned short",
+        "s", "short",
+        "u", "unsigned",
+        "i", "int",
+        "l", "long",
+        "ul", "unsigned long",
+        "p", "void *",
+        "f",    "float",
+        "d", "double",
+);
+
+### BEGIN ###
+&prologue;
+
+
+###########################################################################
+#		Standard binary operations (rd, rs1, rs2)
+#
+# 	name		c-equiv operation	types
+&alu( 	"add", 		"+", 			"i u ul l f d");
+&alu( 	"sub", 		"-", 	 		"i u ul l f d");
+&alu(	"mul", 		"*",	 		"i u ul l f d");
+&alu(	"div", 		"/",	 		"i u ul l f d");
+&alu(	"mod", 		"%",	 		"i u ul l");
+&alu(	"xor", 		"^",	 		"i u ul l");
+&alu(	"and", 		"&",	 		"i u ul l");
+&alu(	"or", 		"|",	 		"i u ul l");
+&alu(	"lsh", 		"<<", 			"i u ul l");
+&alu(	"rsh", 		">>", 			"i u ul l");
+
+###########################################################################
+#	 		Conversions
+#
+# 	name		from-type		to-types
+&cvt(	"cvu2",		"u",			"i ul l");
+&cvt(	"cvl2",		"l",			"i u ul f d");
+&cvt(	"cvul2",	"ul",			"i u l p");
+&cvt(	"cvp2",		"p",			"ul");
+&cvt(	"cvf2",		"f",			"l d");
+&cvt(	"cvd2",		"d",			"l f");
+&cvt(	"cvi2",	 	"i",			"u ul l");
+
+
+
+###########################################################################
+# 		Standard unary operations
+#
+# 	name		c-equiv operation	types
+&unary(	"com",		"~",			"i u ul l");
+&unary(	"not",		"!",			"i u ul l");
+&unary(	"mov",		" ",			"i u ul l p f d");
+&unary(	"neg",		"-",			"i u ul l f d");
+
+
+###########################################################################
+# 		Return operations
+#
+#	name		types
+&ret  ("ret",		"i u ul l p f d");
+
+
+###########################################################################
+# 			Memory operations.
+#
+# 	name	types 				offset required		ld/st
+
+&mem(	"st",	"c uc s us i u ul p f d", 	"aligned_offset", 	"store");
+&mem(	"ld",	"c uc s us i u ul p f d", 	"aligned_offset", 	"load");
+
+# TODO: unaligned memory ops
+
+###########################################################################
+# 			Branch operations
+#
+# 	name		c-equiv operation	types
+&branch("beq",		"==",			"i u ul l p f d");
+&branch("bne",		"!=",			"i u ul l p f d");
+&branch("blt",		"<",			"i u ul l p f d");
+&branch("ble",		"<=",			"i u ul l p f d");
+&branch("bgt",		">",			"i u ul l p f d");
+&branch("bge",		">=",			"i u ul l p f d");
+
+# TODO: add conditonal move, boolean expressions
+
+###########################################################################
+#
+# 			Indirect jump support.	
+#
+&emit_jump();
+
+
+######################################################################
+#
+# Call tests
+#
+%rtype = (
+        "uc", "u",
+        "c", "i",
+        "us", "u",
+        "s", "i",
+        "u", "u",
+        "i", "i",
+        "l", "l",
+        "ul", "ul",
+        "p", "p",
+        "f",    "f",
+        "d", "d",
+);
+
+&emit_calls;
+
+#### DONE ####
+&epilogue;
+
+
+###########################################################################
+# Emittor routines.
+#
+
+sub alu {
+	local($name, $op, $tlist) = @@_;
+	local(@@tlist);
+
+	@@tlist = split('\s+', $tlist);
+	foreach (@@tlist) {
+		&emit_alu($_, $name, $op, 1);
+	}
+}
+
+sub ret {
+	local($name, $tlist) = @@_;
+	local(@@tlist);
+
+	@@tlist = split('\s+', $tlist);
+	foreach (@@tlist) {
+		&emit_ret($_, $name, $op);
+	}
+}
+
+sub unary {
+	local($name, $op, $tlist) = @@_;
+	local(@@tlist);
+
+	@@tlist = split('\s+', $tlist);
+	foreach (@@tlist) {
+		&emit_unary($_, $name, $op);
+	}
+}
+
+sub cvt {
+	local($name, $from_type, $tlist) = @@_;
+	local(@@tlist);
+
+	@@tlist = split('\s+', $tlist);
+	foreach (@@tlist) {
+		&emit_cvt($_, $from_type, $name);
+	}
+}
+
+
+sub mem {
+	local($name, $tlist, $offset, $op) = @@_;
+	local(@@tlist);
+
+	@@tlist = split('\s+', $tlist);
+	foreach (@@tlist) {
+		if($op eq "load") {
+			&emit_load($_, $name, $offset);
+		} else {
+			&emit_store($_, $name, $offset);
+		}
+	}
+}
+
+sub branch {
+	local($name, $op, $tlist) = @@_;
+	local(@@tlist);
+
+	@@tlist = split('\s+', $tlist);
+	foreach (@@tlist) {
+		&emit_branch($_, $name, $op, 1);
+	}
+}
+
+# need to do conversion tests
+# also do mov: get rid of set(?)
+
+
+# 
+# Emit prefix unary instructions
+#
+sub emit_unary {
+	local($t, $name, $op) = @@_;
+	local($insn, $insni);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+print<<EOF;
+	/* reg <- $op reg */
+        v_lambda("$insn", "%$t", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insn(rd$t, arg_list[0]);
+        	v_ret$t(rd$t);
+        ip = v_end(0).i;
+        d$t = $op s1$t;
+        vdemand(d$t == (($type{$t}(*)($type{$t}))ip)(s1$t), $insn failed);
+
+
+EOF
+}
+
+# 
+# Emit conversions
+#
+sub emit_cvt {
+	local($t, $from_type, $name) = @@_;
+	local($insn, $insni);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+print<<EOF;
+	/* reg <- ($type{$t}) reg */
+        v_lambda("$insn", "%$from_type", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insn(rd$t, arg_list[0]);
+        	v_ret$t(rd$t);
+        ip = v_end(0).i;
+        cv$t = ($type{$t}) s1$from_type;
+        vdemand(cv$t == (($type{$t}(*)($type{$from_type}))ip)(s1$from_type), $insn failed);
+
+
+EOF
+}
+
+# Nulary operations
+sub emit_ret {
+	local($t, $name) = @@_;
+	local($insn, $insni);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+print<<EOF;
+	/* ret reg */
+        v_lambda("$insn", "%$t", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insn(arg_list[0]);
+        ip = v_end(0).i;
+        vdemand(s1$t == (($type{$t}(*)($type{$t}))ip)(s1$t), $insn failed);
+
+	/* ret imm */
+        v_lambda("$insni", "", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insni(s1$t);
+        ip = v_end(0).i;
+        vdemand(s1$t == (($type{$t}(*)())ip)(), $insni failed);
+
+
+EOF
+}
+
+# Test jump on labels and on memory locations.
+#
+sub emit_jump {
+	local($t, $name) = @@_;
+	local($insn,$insni);
+
+	$insn = "v_jv";
+	$insni = "v_jp";
+
+print<<EOF;
+	/* ret reg */
+        v_lambda("$insn", "", arg_list, V_LEAF, insn, sizeof insn);
+		l = v_genlabel();
+		$insn(l);
+			v_retii(0);
+		v_label(l);
+        		v_retii(1);
+        ip = v_end(0).i;
+        vdemand(ip(), $insn failed);
+
+	/* ret imm */
+        v_lambda("$insni", "", arg_list, V_LEAF, insn, sizeof insn);
+	{
+		v_code linked_addr;
+
+		l = v_genlabel();
+		v_dmark(&linked_addr, l);
+		v_ldii(rdp, v_zero, &linked_addr);
+
+		$insni(rdp);
+			v_retii(0);
+		v_label(l);
+        		v_retii(1);
+	}
+        ip = v_end(0).i;
+        vdemand(ip(), $insni failed);
+
+
+EOF
+}
+
+#
+# Emit infix binary alu instructions.
+#
+
+#
+# Emit infix binary alu instructions.
+#
+sub emit_alu {
+	local($t, $name, $op) = @@_;
+	local($insn,$insni, $s2);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+	$s2 = ($name eq "lsh" || $name eq "rsh") ?
+		"shift$t" :
+		"s2$t";
+		
+print<<EOF;
+	/* reg <- (reg $op reg) */
+        v_lambda("$insn", "%$t%$t", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insn(rd$t, arg_list[0], arg_list[1]);
+        	v_ret$t(rd$t);
+        ip = v_end(0).i;
+        d$t = (s1$t $op $s2);
+        vdemand(d$t == (($type{$t}(*)($type{$t},$type{$t}))ip)(s1$t, $s2), $insn failed);
+EOF
+	return if($t eq "f" || $t eq "d"); 
+
+print<<EOF;
+
+	/* reg <- (reg $op imm) */
+        v_lambda("$insni", "%$t", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insni(rd$t, arg_list[0], $s2);
+        	v_ret$t(rd$t);
+        ip = v_end(0).i;
+        vdemand(d$t == (($type{$t}(*)($type{$t}))ip)(s1$t), $insni failed);
+
+
+EOF
+}
+
+#
+# Emit infix binary alu instructions.
+#
+sub emit_branch {
+	local($t, $name, $op) = @@_;
+	local($insn,$insni);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+print<<EOF;
+	/* reg <- (reg $op reg) */
+        v_lambda("$insn", "%$t%$t", arg_list, V_LEAF, insn, sizeof insn);
+		l = v_genlabel();
+        	v_$insn(arg_list[0], arg_list[1], l);
+        		v_retii(0);
+		v_label(l);
+			v_retii(1);
+        ip = v_end(0).i;
+        di = (s1$t $op s2$t);
+        vdemand(di == ((int(*)($type{$t},$type{$t}))ip)(s1$t, s2$t), $insn failed);
+EOF
+
+	if($t eq "f" || $t eq "d") { return; }
+
+print<<EOF;
+
+	/* reg <- (reg $op imm) */
+        v_lambda("$insni", "%$t", arg_list, V_LEAF, insn, sizeof insn);
+		l = v_genlabel();
+        	v_$insni(arg_list[0], s2$t, l);
+        		v_retii(0);
+		v_label(l);
+			v_retii(1);
+        ip = v_end(0).i;
+        vdemand(di == ((int(*)($type{$t}))ip)(s1$t), $insni failed);
+
+
+EOF
+}
+
+
+#
+# Emit memory instructions.
+#
+sub emit_load {
+	local($t, $name, $offset) = @@_;
+	local($insn,$insni,$rt);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+	$rt = 
+		($t eq "c" || $t eq "uc" || $t eq "s" || $t eq "us") ?
+			"i" :
+			$t;
+		
+print<<EOF;
+	/* reg <- mem[reg + reg]  */
+        v_lambda("$insn", "%ul%ul", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insn(rd$t, arg_list[0], arg_list[1]);
+        	v_ret$rt(rd$t);
+        ip = v_end(0).i;
+        vdemand(d$t == (($type{$t}(*)(unsigned long, unsigned long))ip)((unsigned long)&d$t - $offset, $offset), $insn failed);
+
+	/* reg <- mem[reg + imm] */
+        v_lambda("$insni", "%ul", arg_list, V_LEAF, insn, sizeof insn);
+        	v_$insni(rd$t, arg_list[0], $offset);
+        	v_ret$rt(rd$t);
+        ip = v_end(0).i;
+        vdemand(d$t == (($type{$t}(*)(unsigned long))ip)((unsigned long)&d$t - $offset), $insni failed);
+
+
+EOF
+}
+
+sub emit_store {
+	local($t, $name, $offset) = @@_;
+	local($insn,$insni);
+
+	$insn = "$name$t";
+	$insni = "$insn" . "i";
+
+print<<EOF;
+	s2ul = (unsigned long)&d$t - $offset;
+
+	/* mem [ reg + reg ] <- reg */
+        v_lambda("$insn", "%ul%ul", arg_list, V_LEAF, insn, sizeof insn);
+		v_set$t(rd$t, s2ul);
+        	v_$insn(rd$t, arg_list[0], arg_list[1]);
+        ip = v_end(0).i;
+        ((void(*)(unsigned long, unsigned long))ip)(s2ul, $offset);
+        vdemand(d$t == ($type{$t})(s2ul), $insn failed);
+
+
+	/* mem [ reg + reg ] <- reg */
+	d$t = 0;
+        v_lambda("$insni", "%ul", arg_list, V_LEAF, insn, sizeof insn);
+		v_set$t(rd$t, s2ul);
+        	v_$insni(rd$t, arg_list[0], $offset);
+        ip = v_end(0).i;
+        ((void(*)(unsigned long))ip)(s2ul);
+
+        vdemand(d$t == ($type{$t})(s2ul), $insni failed);
+
+EOF
+}
+
+
+# we do $n random probes of the search space
+sub emit_random_call {
+	local($trials) = @@_;
+	local(@@arg_list, @@type_list, @@cast_list, $str, $type, $type_str);
+	local($arg_list, $cast, $sz, $arg_string, @@arg_list2, $fptr);
+
+	foreach (1..$trials) {
+		# the maximum number of parameters sould be a flag
+		$sz = int(rand(5)) + 1;
+		@@arg_list2 = @@arg_list = @@type_list = @@cast_list = ();
+		foreach (0..$sz-1) {
+			$n = int(rand(6));
+			$type = "int", $str = "i" if($n == 0);
+			$type = "unsigned", $str = "u" if($n == 1);
+			$type = "long", $str = "l" if($n == 2);
+			$type = "unsigned long", $str = "ul" if($n == 3);
+			$type = "float", $str = "f" if($n == 4);
+			$type = "double", $str = "d" if($n == 5);
+			push(@@cast_list, $type); 
+			push(@@type_list, $str);
+			push(@@arg_list, "s1$str");
+			push(@@arg_list2, "arg_list[$_]");
+		}
+		pop(@@arg_list);
+		push(@@arg_list, "s2$str");
+		$cast = join(',', @@cast_list);
+		$type_str = "%" . join('%', @@type_list);
+		$arg_list = join(',', @@arg_list);
+		$type = $str;
+		$s2 = "s2$type";
+		$arg_string = join(',', @@arg_list2);
+		$fptr = "v_$type" . "ptr";
+
+print<<"EOF";
+		v_lambda("param$sz$type_str", "$type_str", arg_list, V_LEAF, insn, sizeof insn);
+		v_ret$rtype{$type}(arg_list[$sz-1]);
+		ip = v_end(0).i;
+		vdemand($s2 == (($type{$type}(*)($cast))ip)($arg_list), param$sz$type_str failed);
+
+		v_lambda("call$sz$type_str", "$type_str", arg_list, V_NLEAF, insn2, sizeof insn2);
+		reg = v_scall$type(($fptr)ip, "$type_str", $arg_string);
+		v_ret$rtype{$type}(reg);
+		ip2 = v_end(0).i;
+		vdemand2($s2 == (($type{$type}(*)($cast))ip2)($arg_list), call$sz$type failed);
+
+
+EOF
+	}
+}
+
+
+ # should do it both with prototypes and without (i.e., do promotion)
+sub emit_straight_call {
+	local($type) = @@_;
+	local($arg_list, @@args, $type_str, $s2, @@cast, $cast);
+	local($fptr, $arg_string, @@arg_list);
+	@@args = ();
+	$type_str = "";
+
+	$s2 = "s2$type";
+	foreach (1..$maxargs) {
+		# build up arglist
+		push(@@cast, "$type{$type}");
+		$cast = join(',', @@cast);
+		$arg_list = join(',', (@@args, $s2));
+		push(@@args, ("s1$type"));
+		$type_str .= "%$type";
+		push(@@arg_list, "arg_list[". ($_ -1) ."]");
+		$arg_string = join(',', @@arg_list);
+		$fptr = "v_$type" . "ptr";
+print<<"EOF";
+	v_lambda("param$_$type", "$type_str", arg_list, V_LEAF, insn, sizeof insn);
+	v_ret$rtype{$type}(arg_list[$_-1]);
+	ip = v_end(0).i;
+	vdemand($s2 == (($type{$type}(*)($cast))ip)($arg_list), param$_$type failed);
+
+	v_lambda("call$_$type", "$type_str", arg_list, V_NLEAF, insn2, sizeof insn2);
+	reg = v_scall$type(($fptr)ip, "$type_str", $arg_string);
+	v_ret$rtype{$type}(reg);
+	ip2 = v_end(0).i;
+	vdemand2($s2 == (($type{$type}(*)($cast))ip2)($arg_list), call$_$type failed);
+
+EOF
+	}
+}
+
+
+sub emit_calls {
+	$maxargs = 6;
+	# try all straight combinations of (i l u ul f d) upto $maxargs
+	&emit_straight_call("i");
+	&emit_straight_call("u");
+	&emit_straight_call("l");
+	&emit_straight_call("ul");
+	&emit_straight_call("f");
+	&emit_straight_call("d");
+
+	# try arbitrary args upto 2 * $maxargs
+	&emit_random_call(50);
+}
+
+sub prologue {
+	print "int v_errors;\n#include <math.h>\n#include \"vcode.h\"\n#include \"vdemand.h\"\n#include <values.h>\n\n";
+
+print<<EOF;
+
+/*
+	extern long random(void);
+	extern int atoi(char *);
+*/
+
+float c_fabs(float x) { return (x) < 0.0 ? -x : x; }
+double c_abs(double x) { return (x) < 0.0 ? -x : x; }
+float c_fceil(float x) { return (float)(int)(x + .5); }
+double c_ceil(double x) { return (double)(int)(x + .5);}
+float c_ffloor(float x) { return (float)(int)(x); }
+double c_floor(double x) { return (double)(int)(x);}
+float c_fsqrt(float x) { extern double sqrt(double); return (float)sqrt((double)x); }
+double c_sqrt(double x) { extern double sqrt(double); 	return sqrt(x);}
+
+
+int main(int argc, char *argv[]) {
+	v_reg_type	arg_list[100];		/* make sure 100 is big enough */
+	static v_reg_type	zero;		/* hack */
+	v_reg_type	reg;
+	v_reg_type 	rdi, rs1i, rs2i;
+	char		dc, s1c, s2c, cvc;
+	v_reg_type 	rdc, rs1c, rs2c;
+	unsigned char	duc, s1uc, s2uc, cvuc;
+	v_reg_type 	rduc, rs1uc, rs2uc;
+	short		ds, s1s, s2s, cvs;
+	v_reg_type 	rds, rs1s, rs2s;
+	unsigned short	dus, s1us, s2us, cvus;
+	v_reg_type 	rdus, rs1us, rs2us;
+	int 	     	di, s1i, s2i, cvi;
+	v_reg_type 	rdu, rs1u, rs2u;
+	unsigned     	du, s1u, s2u, cvu;
+	v_reg_type 	rdul, rs1ul, rs2ul;
+	unsigned long   dul, s1ul, s2ul, cvul;
+	v_reg_type 	rdl, rs1l, rs2l;
+	long     	dl, s1l, s2l, cvl;
+	v_reg_type	rdf, rs1f, rs2f;
+	float		df, s1f, s2f, cvf;
+	v_reg_type	rdd, rs1d, rs2d;
+	double		dd, s1d, s2d, cvd;
+	v_reg_type 	rdp, rs1p, rs2p;
+	char 		*dp, *s1p, *s2p, *cvp;
+	v_label_type	l;
+	static unsigned insn[1000];
+	static unsigned insn2[1000];
+	v_iptr 	ip;
+	v_iptr 	ip2;
+	int 	iters = (argc == 2) ? atoi(argv[1]) : 10;
+	int 	aligned_offset, unaligned_offset;
+	int 	shifti, shiftu, shiftl, shiftul;
+
+	/* v_init(); */
+
+	/* 
+	 * Disgusting hack: 
+	 * 	1. we try to trick vcode into not using free argument 
+	 *	registers as temporaries.
+	 *
+	 *	2. we use registers across lambda invocations.
+	 */
+	v_lambda("foo", "%i%i%i%i%i", arg_list, V_NLEAF, insn, sizeof insn);
+
+	v_getreg(&rdi, V_I, V_TEMP);
+	rduc = rdc = rds = rdus = rdu = rdul = rdl = rdp = rdi;
+
+	v_getreg(&rs1i, V_I, V_TEMP);
+	rs1u = rs1ul = rs1l = rs1p = rs1i;
+	v_getreg(&rs2i, V_I, V_TEMP);
+	rs2u = rs2ul = rs2l = rs2p = rs2i;
+	v_end(0);
+
+	v_lambda("foo", "%d%d%d%d%d", arg_list, V_NLEAF, insn, sizeof insn);
+	v_getreg(&rdf, V_D, V_TEMP);
+	rdd = rdf;
+	v_getreg(&rs1d, V_D, V_TEMP);
+	rs1f = rs1d;
+	v_getreg(&rs2d, V_D, V_TEMP);
+	rs2f = rs2d;
+	v_end(0);
+	
+loop:
+	s1p = (void *)random();
+	s2p = (void *)random();
+
+	s1i = random() - random(); 
+	s2i = random() - random();
+	if(!(s2i = random() - random()))
+		s2i = random() + 1;
+
+	s1u = random() - random();
+	if(!(s2u = random() - random()))
+		s2u = random() + 1;
+
+	s1ul = random() - random();
+	if(!(s2ul = random() - random()))
+		s2ul = random() + 1;
+
+	s1l = random() - random();
+	if(!(s2l = random() - random()))
+		s2l = random() + 1;
+
+	s2us = random() - random();
+	if(!(s2us = random() - random()))
+		s2us = random() + 1;
+
+	s1f = (float)random() / random();
+	s2f = (float)random() / (random()+1) * ((random()%1) ? 1. : -1.);
+
+	s1d = (double)random() / random();
+	s2d = (double)random() / (random()+1) * ((random()%1) ? 1. : -1.);
+
+	shifti = random() % (sizeof(int) * BITSPERBYTE);
+	shiftu = random() % (sizeof(unsigned) * BITSPERBYTE);
+	shiftl = random() % (sizeof(long) * BITSPERBYTE);
+	shiftul = random() % (sizeof(unsigned long) * BITSPERBYTE);
+	/* 
+	 * Rip off the lower bits to give 8 byte alignement; will have
+	 * to change this for machines with more stringent requirements.
+	 */
+	aligned_offset = (random() - random()) & ~7;
+	unaligned_offset = (random() - random());
+
+
+EOF
+}
+
+sub epilogue {
+
+print<<EOF;
+
+	if(!v_errors && iters-- > 0) goto loop;
+
+	if(!v_errors) {
+		printf("No errors!\n");
+		return 0;
+	}
+
+	printf("*** %d Errors! ****\n", v_errors);
+	printf("s1i %d, s2i %d, s1u %x, s2u %x\\n", s1i,s2i,s1u,s2u);
+	printf("s1ul %lu, s2ul %lu, s1l %ld, s2l %ld\\n", 
+						s1ul,s2ul,s1l,s2l);
+	printf("s1f = %f, s2f = %f, s1d = %f, s2d = %f\\n",
+						s1f,s2f,s1d,s2d);
+	printf(" aligned offset = %d, unaligned offset %d\\n", 
+		aligned_offset, unaligned_offset);
+	printf("shifti = %d, shiftu = %d, shiftl = %d, shiftul = %d\\n",
+		shifti, shiftu, shiftl, shiftul);	
+	return 1;
+}
+
+EOF
+}
+@
+
+
+1.2
+log
+@Old test gen
+@
+text
+@d1 2
+a2 1
+#!/usr/local/perl -wP
+d4 107
+d112 11
+a122 24
+	"uc", "u",
+	"c", "i",
+	"us", "u",
+	"s", "i",
+	"u", "u",
+	"i", "i",
+	"l", "l",
+	"ul", "ul",
+	"p", "p",
+	"f",	"f",
+	"d", "d",
+);
+%type = (
+	"uc", "unsigned char",
+	"c", "char",
+	"us", "unsigned short",
+	"s", "short",
+	"u", "unsigned",
+	"i", "int",
+	"l", "long",
+	"ul", "unsigned long",
+	"p", "void *",
+	"f",	"float",
+	"d", "double",
+d125 1
+a125 5
+ 	#types
+	@@tlist1 = ("i", "u", "ul", "l");	# standard integer types
+	@@tlist2 = (@@tlist1, "f", "d");		# addition of pointer type
+	@@tlist3 = (@@tlist1, "c", "uc", "s", "us");# addition of small int types
+	@@fplist = ("f", "d");
+d127 2
+a128 3
+	# prototype for all  (not doing fp initially)
+	
+	&prologue;
+a129 29
+	&alu("add", "+", @@tlist2);
+	&alu("sub", "-", @@tlist2);
+	&alu("xor", "^", @@tlist1);
+	&alu("and", "&", @@tlist1);
+	&alu("or", "|", @@tlist1);
+
+	&alu6("lsh", "<<", @@tlist1);
+	&alu6("rsh", ">>", @@tlist1);
+
+	&unary("com", "~", @@tlist1);
+	&unary("not", "!", @@tlist1);
+	&unary("mov", "", @@tlist1);
+	&unary("neg", "-", @@tlist1);
+
+	&memory("st", "aligned_offset", "MEMORY_ST", @@tlist3);
+	&memory("ld", "aligned_offset", "MEMORY_LD", @@tlist3);
+
+	&alu("mul", "*", @@tlist2);
+	&alu("div", "/", @@tlist2);
+	&alu("mod", "%", @@tlist1);
+#if 0
+	&alu2("andnot", "&", "~", @@tlist1);
+	&alu2("ornot", "|", "~", @@tlist1);
+	&alu2("xornot", "^", "~", @@tlist1);
+	
+	&alu3("nor", "~", "|", @@tlist1);
+	&alu3("nand", "~", "&", @@tlist1);
+	&alu3("nxor", "~", "^", @@tlist1);
+	
+d131 3
+d135 3
+a137 2
+	&unary_fp("abs", "c_fabs", "c_abs");
+	&unary_fp("nabs", "-c_fabs", "-c_abs");
+d139 5
+a143 1
+#endif
+d145 3
+a147 43
+	&branch("beq", "==",  @@tlist1);
+	&branch("blt", "<", @@tlist1);
+	&branch("ble", "<=", @@tlist1);
+
+	&branch("bgt", ">", @@tlist1);
+	&branch("bge", ">=", @@tlist1);
+	&branch("bne", "!=", @@tlist1);
+
+#if 0
+#if 0
+#if 0
+	&alu("lt", "<", @@tlist1);
+	&alu("le", "<=", @@tlist1);
+	&alu("gt", ">", @@tlist1);
+	&alu("ge", ">=", @@tlist1);
+	&alu("eq", "==", @@tlist1);
+	&alu("ne", "!=", @@tlist1);
+#endif
+	&alu4("muladd", "*", "+", @@fplist);
+	&alu4("mulsub", "*", "-", @@fplist);
+	
+	&alu5("negmuladd", "*", "+", @@fplist);
+	&alu5("negmulsub", "*", "-", @@fplist);
+	
+	&cmv("cmvlt", "<", @@tlist1);
+	&cmv("cmvle", "<=", @@tlist1);
+	&cmv("cmvge", ">=", @@tlist1);
+	&cmv("cmvgt", ">", @@tlist1);
+	&cmv("cmvne", "!=", @@tlist1);
+	&cmv("cmveq", "==", @@tlist1);
+#if 0
+	
+	&memory("ust", "unaligned_offset", "MEMORY_ST", @@tlist1);
+	&memory("uld", "unaligned_offset", "MEMORY_LD", @@tlist1);
+	
+	# these can be captured by converting to integer and back
+	# &unary_fp("ceil", "c_fceil", "c_ceil");
+	# &unary_fp("floor", "c_ffloor", "c_floor");
+	&unary_fp("sqrt", "c_fsqrt", "c_sqrt");
+#endif
+#endif
+#endif
+	&emit_calls;
+d149 5
+a153 1
+	&epilogue;
+d156 4
+a159 1
+	local($op, $cop1, @@tlist) = @@_;
+d161 1
+a161 1
+		&emit_alu($op, $_, "u", "", "UNARY");
+d164 9
+a172 4
+sub unary_fp {
+	local($op, $fop, $dop) = @@_;
+	$cop1 = $fop; &emit_alu($op, "f", "u", "", "UNARY");
+	$cop1 = $dop; &emit_alu($op, "d", "u", "", "UNARY");
+d176 5
+a180 2
+sub memory {
+	local($op, $offset, $emit_type, @@tlist) = @@_;
+d182 5
+a186 2
+		&emit_mem($op, $_, "", $offset, $emit_type);
+		&emit_mem($op, $_, "i", $offset, $emit_type);
+d190 7
+a196 18
+sub emit_mem {
+	local($op, $type, $suffix, $offset, $emit_type) = @@_;
+	local($d, $s1, $s2, $rd, $rs1, $rs2, $imm, $code, $reg);
+
+	$rd = "arg_list[0]";
+	$rs1 = "arg_list[1]";
+
+	$d  = $type . "d"; 
+	$s1 = $type . "s1";
+	$s2 = $type . "s2";
+	$imm = $type . "i";
+	$reg = (($emit_type eq "MEMORY_LD") ?
+			"arg_list[2]" : "arg_list[1]");
+
+	if($suffix ne "i") {
+		$rs2 = "arg_list[2]";
+	} else {
+		$rs2 = "$offset";
+d198 5
+d204 10
+d215 9
+a223 4
+	v_lambda("$op$type$suffix", "%$rtype{$type}%$rtype{$type}%$rtype{$type}", arg_list, V_LEAF, insn);
+	v_$op$type$suffix($reg, $rs1, $rs2);
+	v_ret$rtype{$type}($reg);
+	ip = v_end().i;
+d225 8
+d234 3
+a236 1
+	if($emit_type eq "MEMORY_LD") {
+d238 8
+a245 1
+	vdemand($d == (($type{$type}(*)())ip)(0,(unsigned long)&$d - $offset, $offset), $op$type failed);
+d248 10
+a257 1
+	} else {
+d259 12
+a270 3
+	/* ip will set d to s1 */
+	(($type{$type}(*)())ip)(0, (unsigned long)&$d - $offset, $offset);
+	vdemand($d == (($type{$type})((unsigned long)&$d - $offset)),  $op$type failed);
+d273 35
+d309 5
+d316 40
+a355 3
+sub branch {
+	local($op, $cop1, @@tlist) = @@_;
+	&gen_alu("BRANCH"); 
+d358 39
+a396 3
+sub alu { 
+	local($op, $cop1, @@tlist) = @@_;
+	&gen_alu("ALU"); 
+d398 31
+a428 3
+sub alu2 { 
+	local($op, $cop1, $cop2, @@tlist) = @@_;
+	&gen_alu("ALU2"); 
+a429 5
+}
+sub alu3 { 
+	local($op, $cop1, $cop2, @@tlist) = @@_;
+	&gen_alu("ALU3"); 
+}
+d431 1
+a431 9
+ # (rs1 op rs2) op rs3
+sub alu4 {
+	local($op, $cop1, $cop2, @@tlist) = @@_;
+	&gen_alu("ALU4"); 
+}
+ # -(rs1 op rs2) op rs3
+sub alu5 {
+	local($op, $cop1, $cop2, @@tlist) = @@_;
+	&gen_alu("ALU5"); 
+a432 4
+sub alu6 { 
+	local($op, $cop1, @@tlist) = @@_;
+	&gen_alu("ALU6"); 
+}
+d434 3
+a436 2
+sub cmv {
+	local($op, $cop1, $cop2, @@tlist) = @@_;
+d438 2
+a439 8
+	foreach (@@tlist) {
+		&emit_cmv($op, $_, "", "rs1", "rs2");
+		# do the three possible cmv varients (cut these down?)
+		&emit_cmv($op, $_, "ir", "s1", "rs2") if $_ ne "d" && $_ ne "f";
+		&emit_cmv($op, $_, "ri", "rs1", "s2") if $_ ne "d" && $_ ne "f";
+		&emit_cmv($op, $_, "ii", "s1", "s2") if $_ ne "d" && $_ ne "f";
+	}
+}
+d441 2
+a442 17
+sub emit_cmv {
+	local($op, $type, $suffix, $rs, $op2) = @@_;
+	local($d, $s1, $s2, $ccode,$call,$b2);
+	local($rd, $rs1, $imm, $load, $proto);
+
+	if($op2 =~ /r/) {
+		$b2 = "arg_list[2]";
+	} else {
+		$b2 = $type . $op2;
+	}
+	if($rs =~ /r/) {
+		$rs = "arg_list[1]";
+	} else {
+		$rs = $type . $rs;
+	}
+	$rd =  "arg_list[0]"; 
+	$rs1 = "arg_list[1]"; 
+d444 16
+a459 9
+	$d  = $type . "d"; 
+	$s1 = $type . "s1";
+	$s2 = $type . "s2";
+	$imm = $type . "i";
+	$proto = "$type{$type},$type{$type},$type{$type}";
+
+        $load = ($op2 ne "rs2") ? 
+		"" :
+		"v_ld$imm($b2, zero, (unsigned long)&$s2);";
+d461 1
+a461 7
+print<<"EOF";
+	v_lambda("$op$type$suffix", "%$type%$type%$type", arg_list, V_LEAF, insn);
+	v_$op$type$suffix($rd, $rs, $rs1, $b2);
+	v_ret$rtype{$type}($rd);
+	ip = v_end().i;
+        $d = (($s1 $cop1 $s2) ? $s1 : $d);
+	vdemand($d == (($type{$type}(*)($proto))ip)($d,$s1,$s2), $op$type failed);
+a465 1
+ # we do $n random probes of the search space
+d467 1
+d485 4
+a488 4
+			push(cast_list, $type); 
+			push(type_list, $str);
+			push(arg_list, $str . "s1");
+			push(arg_list2, "arg_list[$_]");
+d490 2
+a491 2
+		pop(arg_list);
+		push(arg_list, $str . "s2");
+d496 1
+a496 1
+		$s2 = $type . "s2";
+d501 1
+a501 1
+		v_lambda("param$sz$type_str", "$type_str", arg_list, V_LEAF, insn);
+d503 1
+a503 1
+		ip = v_end().i;
+d506 1
+a506 1
+		v_lambda("call$sz$type_str", "$type_str", arg_list, V_NLEAF, insn2);
+d509 1
+a509 1
+		ip2 = v_end().i;
+d526 1
+a526 1
+	$s2 = $type . "s2";
+d529 1
+a529 1
+		push(cast, "$type{$type}");
+d532 1
+a532 1
+		push(args, ($type . "s1"));
+d534 1
+a534 1
+		push(arg_list, "arg_list[". ($_ -1) ."]");
+d538 1
+a538 1
+	v_lambda("param$_$type", "$type_str", arg_list, V_LEAF, insn);
+d540 1
+a540 1
+	ip = v_end().i;
+d543 1
+a543 1
+	v_lambda("call$_$type", "$type_str", arg_list, V_NLEAF, insn2);
+d546 1
+a546 1
+	ip2 = v_end().i;
+a567 82
+sub gen_alu {
+	local($ctype) = @@_;
+	local($op3) = ($ctype eq "ALU6") ? "shift" : "s2";
+
+	foreach (@@tlist) {
+		&emit_alu($op, $_, "", "rs2", $ctype);
+		# fp doesn't have immediates
+		&emit_alu($op, $_, "i", $op3, $ctype) if $_ ne "d" && $_ ne "f";
+	}
+}
+
+sub emit_alu {
+	local($op, $type, $suffix, $op3, $emit_type) = @@_;
+	local($d, $s1, $s2, $ccode,$call);
+	local($rd, $rs1, $rs2, $imm, $load, $proto);
+
+	$rd = "arg_list[0]";
+	$rs1 = "arg_list[1]";
+	if($op3 =~ /r/) {
+		$rs2 = "arg_list[2]";
+	} else {
+		$rs2 = $type . $op3;
+	}
+	$d  = $type . "d"; 
+	$s1 = $type . "s1";
+	$s2 = ($type . (($emit_type eq "ALU6") ? "shift" : "s2"));
+	$imm = $type . "i";
+	$proto = "$type{$type},$type{$type},$type{$type}";
+
+	if($suffix eq "i")  {
+		$load = "";
+	} elsif($suffix eq "u") {
+		$suffix = "";
+	} else {
+		$load = "v_ld$imm($rs2, zero, (unsigned long)&$s2);"
+	}
+	if($emit_type eq "ALU" || $emit_type eq "ALU6") {
+		$ccode = "($s1 $cop1 $s2)";
+		$call = "v_$op$type$suffix($rd, $rs1, $rs2)";
+	} elsif($emit_type eq "ALU2") {
+		$ccode = "($s1 $cop1 ($cop2 $s2))";
+		$call = "v_$op$type$suffix($rd, $rs1, $rs2)";
+	} elsif($emit_type eq "ALU3") {
+		$ccode = "($cop1 ($s1 $cop2 $s2))";
+		$call = "v_$op$type$suffix($rd, $rs1, $rs2)";
+	} elsif($emit_type eq "ALU4") {
+		$ccode = "(($s1 $cop1 $s2) $cop2 $s2)";
+		$call = "v_$op$type$suffix($rd, $rs1, $rs2, $rs2)";
+	} elsif($emit_type eq "ALU5") {
+		$ccode = "-(($s1 $cop1 $s2) $cop2 $s2)";
+		$call = "v_$op$type$suffix($rd, $rs1, $rs2, $rs2)";
+	} elsif($emit_type eq "UNARY") {
+		$ccode = "($cop1($s1))";
+		$call = "v_$op$type$suffix($rd, $rs1)";
+	} elsif($emit_type eq "BRANCH") {
+		$ccode = "(($s1 $cop1 $s2) ? $s2 : $s1)";
+		local($ts2) = ($suffix) ?
+			($type . "s2") :
+			$rs2;
+		$call =
+		"{
+			v_label_type l = v_genlabel();
+			v_$op$type$suffix($rs1, $rs2, l);
+				v_ret$rtype{$type}($rs1);
+			v_label(l);
+				v_ret$rtype{$type}$suffix($ts2);
+		}";
+	} else {
+		die "bogus <$emit_type>\n";
+	}
+print<<EOF;
+	v_lambda("$op$type$suffix", "%$type%$type%$type", arg_list, V_LEAF, insn);
+	$call;
+	v_ret$rtype{$type}($rd);
+	ip = v_end().i;
+	$d = $ccode;
+	vdemand($d == (($type{$type}(*)($proto))ip)(0, $s1, $s2), $op$type failed);
+
+EOF
+}
+
+
+d569 1
+a569 1
+	print "#include <math.h>\n#include \"vcode.h\"\n#include \"vdemand.h\"\n#include <values.h>\n";
+d592 23
+a614 22
+	v_reg_type 	ird, irs1, irs2;
+	char		cd, cs1, cs2;
+	v_reg_type 	crd, crs1, crs2;
+	unsigned char	ucd, ucs1, ucs2;
+	v_reg_type 	ucrd, ucrs1, ucrs2;
+	short		sd, ss1, ss2;
+	v_reg_type 	srd, srs1, srs2;
+	unsigned short	usd, uss1, uss2;
+	v_reg_type 	usrd, usrs1, usrs2;
+	int 	     	id, is1, is2;
+	v_reg_type 	urd, urs1, urs2;
+	unsigned     	ud, us1, us2;
+	v_reg_type 	ulrd, ulrs1, ulrs2;
+	unsigned long   uld, uls1, uls2;
+	v_reg_type 	lrd, lrs1, lrs2;
+	long     	ld, ls1, ls2;
+	v_reg_type	frd, frs1, frs2;
+	float		fd, fs1, fs2;
+	v_reg_type	drd, drs1, drs2;
+	double		dd, ds1, ds2;
+	v_reg_type 	prd, prs1, prs2;
+	char 		*pd, *ps1, *ps2;
+d621 1
+a621 1
+	int 	ishift, ushift, lshift, ulshift;
+d632 1
+a632 1
+	v_lambda("foo", "%i%i%i%i%i", arg_list, V_NLEAF, insn);
+d634 2
+a635 2
+	v_getreg(&ird, V_I, V_TEMP);
+	ucrd = crd = srd = usrd = urd = ulrd = lrd = prd = ird;
+d637 14
+a650 14
+	v_getreg(&irs1, V_I, V_TEMP);
+	urs1 = ulrs1 = lrs1 = prs1 = irs1;
+	v_getreg(&irs2, V_I, V_TEMP);
+	urs2 = ulrs2 = lrs2 = prs2 = irs2;
+	v_end();
+
+	v_lambda("foo", "%d%d%d%d%d", arg_list, V_NLEAF, insn);
+	v_getreg(&frd, V_D, V_TEMP);
+	drd = frd;
+	v_getreg(&drs1, V_D, V_TEMP);
+	frs1 = drs1;
+	v_getreg(&drs2, V_D, V_TEMP);
+	frs2 = drs2;
+	v_end();
+d653 34
+a686 17
+	is1 = random() - random(); 
+	us1 = random() - random();
+	uls1 = random() - random();
+	ls1 = random() - random();
+	is2 = random() - random();
+	us2 = random() - random();
+	uls2 = random() - random();
+	ls2 = random() - random();
+	fs1 = (float)random() / random();
+	fs2 = (float)random() / random();
+	ds1 = (double)random() / random();
+	ds2 = (double)random() / random();
+
+	ishift = random() % (sizeof(int) * BITSPERBYTE);
+	ushift = random() % (sizeof(unsigned) * BITSPERBYTE);
+	lshift = random() % (sizeof(long) * BITSPERBYTE);
+	ulshift = random() % (sizeof(unsigned long) * BITSPERBYTE);
+a693 7
+	printf("is1 %d, is2 %d, us1 %x, us2 %x\\n", is1,is2,us1,us2);
+	printf("uls1 %lu, uls2 %lu, ls1 %ld, ls2 %ld\\n", uls1,uls2,ls1,ls2);
+	printf("fs1 = %f, fs2 = %f, ds1 = %f, ds2 = %f\\n",fs1,fs2,ds1,ds2);
+	printf(" aligned offset = %d, unaligned offset %d\\n", 
+		aligned_offset, unaligned_offset);
+	printf("ishift = %d, ushift = %d, lshift = %d, ulshift = %d\\n",
+		ishift, ushift, lshift, ulshift);	
+d701 19
+a719 2
+	if(iters-- > 0) goto loop;
+	return 0;
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d3 13
+d17 4
+d32 2
+a33 1
+	@@tlist2 = (@@tlist1, "f", "d");			# addition of pointer type
+d54 6
+a59 2
+	&memory("st", "aligned_offset", "MEMORY_ST", @@tlist1);
+	&memory("ld", "aligned_offset", "MEMORY_LD", @@tlist1);
+a70 3
+	&alu("mul", "*", @@tlist2);
+	&alu("div", "/", @@tlist2);
+	&alu("mod", "%", @@tlist1);
+d73 1
+d76 1
+a76 2
+
+#if 0
+d79 1
+a82 1
+	&branch("beq", "==",  @@tlist1);
+d85 2
+a106 1
+#endif
+a107 1
+#if 0
+a109 1
+#endif
+d115 3
+a117 1
+
+a118 1
+#endif
+d164 1
+a164 1
+	v_lambda("$op$type$suffix", "%$type%$type%$type", arg_list, V_LEAF, insn);
+d166 1
+a166 1
+	v_ret$type($reg);
+d179 1
+a179 1
+	vdemand($d == ((unsigned long)&$d - $offset),  $op$type failed);
+d262 1
+a262 1
+	v_ret$type($rd);
+d306 1
+a306 1
+		v_ret$type(arg_list[$sz-1]);
+d312 1
+a312 1
+		v_ret$type(reg);
+d343 1
+a343 1
+	v_ret$type(arg_list[$_-1]);
+d349 1
+a349 1
+	v_ret$type(reg);
+d433 1
+a433 1
+			struct v_label l = v_genlabel();
+d435 1
+a435 1
+				v_ret$type($rs1);
+d437 1
+a437 1
+				v_ret$type$suffix($ts2);
+d445 1
+a445 1
+	v_ret$type($rd);
+d475 12
+a486 4
+	struct v_reg	arg_list[100];		/* make sure 100 is big enough */
+	static struct v_reg	zero;		/* hack */
+	struct v_reg	reg;
+	struct v_reg 	ird, irs1, irs2;
+d488 1
+a488 1
+	struct v_reg 	urd, urs1, urs2;
+d490 1
+a490 1
+	struct v_reg 	ulrd, ulrs1, ulrs2;
+d492 1
+a492 1
+	struct v_reg 	lrd, lrs1, lrs2;
+d494 1
+a494 1
+	struct v_reg	frd, frs1, frs2;
+d496 1
+a496 1
+	struct v_reg	drd, drs1, drs2;
+d498 1
+a498 1
+	struct v_reg 	prd, prs1, prs2;
+d509 10
+d520 1
+a520 1
+	urd = ulrd = lrd = prd = ird;
+d526 1
+d528 1
+d535 1
+@

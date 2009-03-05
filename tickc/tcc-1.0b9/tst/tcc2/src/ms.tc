@@ -1,0 +1,98 @@
+#include "benchmark.h"
+
+#define MSIZE 100
+
+typedef void (*vp)();
+
+void cspec mkscale(int s, int r, int c, int **m) {
+     return `{
+	  int i,j;
+	  /* $n can be encoded directly
+	     in the loop termination check */
+	  for (i = 0; i < $r; i++) {
+	       int *v = ($m)[i];
+	       for (j = 0; j < $c; j++)
+		    /* multiplication by `$s' can be
+		       strength-reduced at runtime */
+		    v[j] = v[j] * $s;
+	  }
+	  return 0;
+     };
+}
+
+int ** fillmatrix(int s) {
+     int r,c;
+     int **m;
+     m = (int**)malloc(s * sizeof(int *));
+     for (r = 0; r < s; r++)
+	  m[r] = (int *)malloc(s * sizeof(int));
+     srandom(1);
+     for (r = 0; r < s; r++)
+	  for (c = 0; c < s; c++)
+	       m[r][c] = (int)(random()%0xF);
+     return m;
+}
+
+void printmatrix(int **m, int s) {
+     int r,c;
+     for (r=0;r<s;r++) {
+	  for (c=0;c<s;c++)
+	       printf ("%3d",m[r][c]);
+	  printf("\n");
+     }
+}
+
+void scalematrix(int **m, int s, int k) {
+     int r,c;
+     for (r=0;r<s;r++) {
+	  int *row = m[r];
+	  for (c=0;c<s;c++)
+	       row[c] *= k;
+     }
+}
+
+void main(int argc, char **argv) {
+     vp f, f2;
+     int r;
+     int **imatrix;
+     int scalefactor;
+
+     doargs(argc, argv);
+     scalefactor = ndata;
+     printf("## ms ##\n");
+
+     imatrix = fillmatrix(MSIZE);
+     if (optVerbose)
+	  printmatrix(imatrix,MSIZE);
+
+     if (optDCG) {
+				/* Warm cache */
+	  f2 = (vp)compile(mkscale(scalefactor,MSIZE,MSIZE,imatrix),int);
+
+	  SWON("compilation");
+	  for (r=0;r<ncomp;r++) {
+	       f = (vp)compile(mkscale(scalefactor,MSIZE,MSIZE,imatrix),int);
+	       decompile(f);
+	  }
+	  SWOFF;
+
+	  f = f2;
+	  if (!f) return;
+	  dump(f);
+
+	  (*f)();		/* Warm cache */
+	  SWON("run");
+	  for (r=0;r<nruns;r++)
+	       (*f)();
+	  SWOFF;
+     } else {
+	  scalematrix(imatrix,MSIZE,scalefactor); /* Warm cache */
+	  SWON("run");
+	  for (r=0;r<nruns;r++)
+	       scalematrix(imatrix,MSIZE,scalefactor);
+	  SWOFF;
+     }
+
+     if (optVerbose)
+	  printmatrix(imatrix,MSIZE);
+}

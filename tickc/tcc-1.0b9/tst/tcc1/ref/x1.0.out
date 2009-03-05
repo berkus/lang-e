@@ -1,0 +1,10 @@
+EXPECT: foo\?"'
+foo\?"'
+EXPECT: integer 1 character A float 2.000000 double 3.000000e+00
+integer 1 character A float 2.000000 double 3.000000e+00
+EXPECT: a110 b1k c111 d11.200000e+01 a211 b2l c212 d21.300000e+01
+EXPECT: a11 b1a c12 d13.000000e+00 a22 b2b c23 d24.000000e+00
+EXPECT: -1.000000e+00
+a110 b1k c111 d11.200000e+01 a211 b2l c212 d21.300000e+01
+a11 b1a c12 d13.000000e+00 a22 b2b c23 d24.000000e+00
+-1.000000e+00

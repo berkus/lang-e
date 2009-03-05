@@ -1,0 +1,41 @@
+# RULE 0
+mov $0,%a
+=
+clr %a
++
+
+# RULE 1
+add $0,%a
+=
++
+
+# RULE 2
+jeq %a
+jmp %b
+%a:
+=
+jne %b
+%a:
++
+
+# RULE 3
+add $%b,r%a
+mov *r%a,%c
+=
+mov %b(r%a),%c
+add $%b,r%a
++
+
+# RULE 4
+add $%c,r%a
+jne %b
+=
+jne %b
++
+
+# RULE 5
+mov %d(r%a),%c
+jne %b
+=
+jne %b
++
