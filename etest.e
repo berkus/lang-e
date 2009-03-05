@@ -1,4 +1,8 @@
-using list from system.collections;
+// import a type from predefined library
+using list from system.collections
+// declare a synonym for a type
+// you don't have to import a type with using
+using my_type = system.collections.rbtree
 
 // problem: template specification has type: var list inverted from the
 // normal way. looks weird. maybe [hashable -> T] ? [hashable: T] looks 
@@ -16,14 +20,18 @@ class my_class[T: hashable]
 {
 	list[my_class]: l; // private by default
 	int: var {
-	    get = (){ return var; } // public
-	    friend set = (int: v){ var = v; } // friend
-	    set = (int: v){ if (v > var) var = v; } // public
+	    get = (){ return var } // public
+	    friend set = (int: v){ var = v } // friend
+	    set = (int: v){ if (v > var) var = v } // public
 	}
 
 	int: function1(int: a, b, c, d)
 	{
-	    return 0;
+	    for (my_class: t in l) {
+		t.function1(a, b, c, d)
+	    }
+	    assert valid() // postcondition invariant (looks like Java here)
+	    return 0
 	}
 	
 	// template function declaration
@@ -31,4 +39,9 @@ class my_class[T: hashable]
 }
 
 
-my_class[string]: instance;
+my_class[string]: instance
+
+// use something more like exception handlers in Common Lisp for xcp
+// pros: can provide default recovery strategy but with possibility for
+// higher level code to override that.
+

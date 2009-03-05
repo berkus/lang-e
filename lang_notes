@@ -4,12 +4,10 @@ As for the language, I've been messing around some ideas, and what I think is cr
  * Support for DBC (design-by-contract) from the grounds up - see Eiffel as an example.
  * Simple syntax (this is probably very C-biased, because I think plain C syntax is quite nice, but..)
 
-Something along the lines of:
-
-start_thread(t: @thread): int
+int: start_thread(@thread: t)
 invariant t != 0
 {
-    rc: int = 0
+    int: rc = 0
     rc |= t.init_stack()
     rc |= t.init_data()
     return rc
